@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import unittest
 from dataclasses import replace
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from collector.dividendi_data import CashDividend, load_instruments, load_latest_document
 from collector.dividendi_data.refresh import (
     assemble_latest_document,
     is_intraday_snapshot,
     publish_latest_document,
+    refresh_latest,
 )
 from collector.dividendi_data.sina import CurrentQuotes, FuturesQuote, SpotQuote
 
@@ -105,6 +107,66 @@ class LatestRefreshTest(unittest.TestCase):
             )
             self.assertFalse(publish_latest_document(later, self.catalog, output))
             self.assertEqual(output.read_bytes(), original)
+
+    def test_reuses_dividends_within_one_market_date(self) -> None:
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "latest.json"
+            next_market_date = date(2026, 8, 31)
+            next_quotes = replace(
+                self.quotes,
+                fetched_at=datetime(2026, 8, 31, 7, 5, tzinfo=UTC),
+                futures=tuple(
+                    replace(quote, market_date=next_market_date) for quote in self.quotes.futures
+                ),
+                underlyings=tuple(
+                    replace(quote, market_date=next_market_date)
+                    for quote in self.quotes.underlyings
+                ),
+                stocks=tuple(
+                    replace(quote, market_date=next_market_date) for quote in self.quotes.stocks
+                ),
+            )
+            with (
+                patch(
+                    "collector.dividendi_data.refresh.fetch_current_quotes",
+                    side_effect=(self.quotes, self.quotes, next_quotes),
+                ),
+                patch(
+                    "collector.dividendi_data.refresh.fetch_catalog_dividends",
+                    return_value=self.dividends,
+                ) as fetch_dividends,
+            ):
+                refresh_latest(output, fetched_at=self.quotes.fetched_at)
+                refresh_latest(
+                    output,
+                    fetched_at=self.quotes.fetched_at + timedelta(hours=1),
+                )
+                refresh_latest(output, fetched_at=next_quotes.fetched_at)
+
+            self.assertEqual(fetch_dividends.call_count, 2)
+
+    def test_cached_dividends_recompute_yield_for_new_price(self) -> None:
+        previous = assemble_latest_document(
+            self.catalog,
+            self.quotes,
+            self.dividends,
+            intraday=False,
+        )
+        changed_quotes = replace(
+            self.quotes,
+            stocks=tuple(replace(quote, price=Decimal("20")) for quote in self.quotes.stocks),
+        )
+
+        updated = assemble_latest_document(
+            self.catalog,
+            changed_quotes,
+            None,
+            intraday=False,
+            previous=previous,
+        )
+
+        self.assertEqual(updated.stocks[0].implemented_dividend_per_share, Decimal("0.5"))
+        self.assertEqual(updated.stocks[0].dividend_yield, Decimal("0.025"))
 
     def test_replaces_data_that_no_longer_matches_the_catalog(self) -> None:
         document = assemble_latest_document(

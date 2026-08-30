@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import replace
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -18,6 +19,7 @@ from .documents import (
     LatestDocument,
     StockMetric,
     atomic_write_json,
+    load_latest_document,
     parse_latest_document,
 )
 from .formulas import (
@@ -52,9 +54,10 @@ def _contract_expiry(product_code: str, contract_code: str) -> date:
 def assemble_latest_document(
     catalog: InstrumentCatalog,
     quotes: CurrentQuotes,
-    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]],
+    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]] | None,
     *,
     intraday: bool,
+    previous: LatestDocument | None = None,
 ) -> LatestDocument:
     """Combine provider results into one deterministic, validated document."""
 
@@ -99,16 +102,33 @@ def assemble_latest_document(
         )
 
     stock_quotes = {(quote.market, quote.code): quote for quote in quotes.stocks}
+    previous_stocks = (
+        {(metric.market, metric.code): metric for metric in previous.stocks}
+        if previous is not None and previous.market_date == market_date
+        else {}
+    )
     stocks: list[StockMetric] = []
     for stock in catalog.stocks:
         key = (stock.market, stock.code)
         quote = stock_quotes.get(key)
         if quote is None:
             raise ValueError(f"行情缺少股票 {stock.market}:{stock.code}")
-        if key not in dividends:
-            raise ValueError(f"分红数据缺少股票 {stock.market}:{stock.code}")
-        dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
-        completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
+        if dividends is not None:
+            if key not in dividends:
+                raise ValueError(f"分红数据缺少股票 {stock.market}:{stock.code}")
+            dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
+            completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
+            completed_year = None if completed is None else completed[0]
+            completed_dividend = None if completed is None else completed[1]
+            dividend_source = CNINFO_SOURCE
+        else:
+            cached = previous_stocks.get(key)
+            if cached is None:
+                raise ValueError(f"缓存分红缺少股票 {stock.market}:{stock.code}")
+            dividend_per_share = cached.implemented_dividend_per_share
+            completed_year = cached.completed_fiscal_year
+            completed_dividend = cached.completed_fiscal_year_dividend_per_share
+            dividend_source = cached.dividend_source
         stocks.append(
             StockMetric(
                 market=stock.market,
@@ -117,15 +137,13 @@ def assemble_latest_document(
                 implemented_dividend_per_share=dividend_per_share,
                 dividend_yield=trailing_dividend_yield(dividend_per_share, quote.price),
                 price_source=SINA_SOURCE,
-                dividend_source=CNINFO_SOURCE,
-                completed_fiscal_year=None if completed is None else completed[0],
-                completed_fiscal_year_dividend_per_share=(
-                    None if completed is None else completed[1]
-                ),
+                dividend_source=dividend_source,
+                completed_fiscal_year=completed_year,
+                completed_fiscal_year_dividend_per_share=completed_dividend,
                 completed_fiscal_year_dividend_yield=(
                     None
-                    if completed is None
-                    else trailing_dividend_yield(completed[1], quote.price)
+                    if completed_dividend is None
+                    else trailing_dividend_yield(completed_dividend, quote.price)
                 ),
             )
         )
@@ -241,19 +259,32 @@ def refresh_latest(
     *,
     fetched_at: datetime | None = None,
 ) -> bool:
-    """Fetch, assemble, validate, and publish the latest website document."""
+    """Refresh quotes, fetching dividends at most once per market date."""
 
     now = datetime.now(UTC) if fetched_at is None else fetched_at
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("抓取时间必须包含时区")
     catalog = load_instruments()
+    previous = None
+    if output.exists():
+        with suppress(OSError, ValueError):
+            previous = load_latest_document(output, catalog)
     quotes = fetch_current_quotes(catalog, now.astimezone(SHANGHAI).date(), now)
-    dividends = fetch_catalog_dividends(catalog)
+    market_dates = {
+        *(quote.market_date for quote in quotes.futures),
+        *(quote.market_date for quote in quotes.underlyings),
+        *(quote.market_date for quote in quotes.stocks),
+    }
+    reuse_dividends = (
+        previous is not None and len(market_dates) == 1 and previous.market_date in market_dates
+    )
+    dividends = None if reuse_dividends else fetch_catalog_dividends(catalog)
     market_date = quotes.futures[0].market_date
     document = assemble_latest_document(
         catalog,
         quotes,
         dividends,
         intraday=is_intraday_snapshot(now, market_date),
+        previous=previous if reuse_dividends else None,
     )
     return publish_latest_document(document, catalog, output)
