@@ -7,11 +7,13 @@ import { useHistoryData } from "./useHistoryData";
 const MetricLineChart = lazy(() => import("./MetricLineChart"));
 
 type MetricKind = "futures" | "stocks";
+export type DividendBasis = "reference" | "trailing";
 type RangeDays = 31 | 92 | 365;
 
 export interface TrendPoint {
 	readonly closePrice: number;
 	readonly date: string;
+	readonly fiscalYear?: number;
 	readonly metricValue: number;
 }
 
@@ -75,18 +77,27 @@ export function futuresPoints(
 export function stockPoints(
 	history: HistoryData,
 	stockKey: string,
+	basis: DividendBasis = "trailing",
 ): readonly TrendPoint[] {
 	return history.snapshots.flatMap((snapshot) => {
 		const metric = snapshot.stocks.find(
 			(candidate) => `${candidate.market}:${candidate.code}` === stockKey,
 		);
-		return metric === undefined
+		const metricValue =
+			basis === "reference"
+				? metric?.completedFiscalYearDividendYield
+				: metric?.dividendYield;
+		return metric === undefined || metricValue === undefined
 			? []
 			: [
 					{
 						closePrice: metric.latestPrice,
 						date: snapshot.marketDate,
-						metricValue: metric.dividendYield * 100,
+						...(basis === "reference" &&
+						metric.completedFiscalYear !== undefined
+							? { fiscalYear: metric.completedFiscalYear }
+							: {}),
+						metricValue: metricValue * 100,
 					},
 				];
 	});
@@ -149,13 +160,21 @@ function HistoryExplorer({
 		firstStock === undefined ? "" : `${firstStock.market}:${firstStock.code}`,
 	);
 	const [rangeDays, setRangeDays] = useState<RangeDays>(92);
+	const hasReferenceData = history.snapshots.some((snapshot) =>
+		snapshot.stocks.some(
+			(stock) => stock.completedFiscalYearDividendYield !== undefined,
+		),
+	);
+	const [dividendBasis, setDividendBasis] = useState<DividendBasis>(
+		hasReferenceData ? "reference" : "trailing",
+	);
 
 	const allPoints = useMemo(
 		() =>
 			kind === "futures"
 				? futuresPoints(history, contractCode)
-				: stockPoints(history, stockKey),
-		[contractCode, history, kind, stockKey],
+				: stockPoints(history, stockKey, dividendBasis),
+		[contractCode, dividendBasis, history, kind, stockKey],
 	);
 	const points = filterRange(allPoints, history, rangeDays);
 	const selectedStock = instruments.stocks.find(
@@ -164,8 +183,15 @@ function HistoryExplorer({
 	const label =
 		kind === "futures"
 			? `${contractCode} 日化贴水`
-			: `${selectedStock?.name ?? stockKey} 股息率`;
-	const metricLabel = kind === "futures" ? "日化贴水" : "股息率";
+			: `${selectedStock?.name ?? stockKey} ${
+					dividendBasis === "reference" ? "购买参考股息率" : "已实施365天股息率"
+				}`;
+	const metricLabel =
+		kind === "futures"
+			? "日化贴水"
+			: dividendBasis === "reference"
+				? "购买参考股息率"
+				: "已实施365天股息率";
 	const metricUnit = kind === "futures" ? "点" : "%";
 	const priceLabel = kind === "futures" ? "期货收盘价" : "股票收盘价";
 	const priceUnit = kind === "futures" ? "点" : "元";
@@ -190,6 +216,33 @@ function HistoryExplorer({
 					股票股息率
 				</button>
 			</fieldset>
+
+			{kind === "stocks" ? (
+				<div className="dividend-basis">
+					<div>
+						<strong>股息率口径</strong>
+						<span>切换后价格曲线保持不变，便于观察算法差异</span>
+					</div>
+					<fieldset className="segmented-control dividend-basis__control">
+						<legend className="sr-only">股息率计算口径</legend>
+						<button
+							aria-pressed={dividendBasis === "reference"}
+							disabled={!hasReferenceData}
+							onClick={() => setDividendBasis("reference")}
+							type="button"
+						>
+							购买参考
+						</button>
+						<button
+							aria-pressed={dividendBasis === "trailing"}
+							onClick={() => setDividendBasis("trailing")}
+							type="button"
+						>
+							已实施 365 天
+						</button>
+					</fieldset>
+				</div>
+			) : null}
 
 			<div className="history-controls">
 				<label>
@@ -283,7 +336,18 @@ function HistoryExplorer({
 						<p className="history-hint">
 							仅显示当前仍在交易的具体合约；上市前没有历史点，换月时请改选合约。
 						</p>
-					) : null}
+					) : dividendBasis === "reference" ? (
+						<p className="history-hint">
+							示例口径：截至每个交易日，采用最近一个已完成派息的财年，合计该财年的常规现金分红并排除特别分红
+							{latestPoint.fiscalYear === undefined
+								? "。"
+								: `；当前采用 ${latestPoint.fiscalYear} 财年。`}
+						</p>
+					) : (
+						<p className="history-hint">
+							已实施 365 天口径会在新分红进入、旧分红退出滚动窗口时发生跳变。
+						</p>
+					)}
 				</>
 			)}
 		</div>

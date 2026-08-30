@@ -40,4 +40,41 @@ describe("history chart points", () => {
 			},
 		]);
 	});
+
+	it("pairs completed fiscal-year yield with the stock close", () => {
+		const metric = snapshot.stocks[0];
+		expect(metric).toBeDefined();
+		if (metric === undefined) {
+			return;
+		}
+
+		const referenceSnapshot = {
+			...snapshot,
+			stocks: snapshot.stocks.map((stock, index) =>
+				index === 0
+					? {
+							...stock,
+							completedFiscalYear: 2025,
+							completedFiscalYearDividendPerShare: 0.5,
+							completedFiscalYearDividendYield: 0.05,
+						}
+					: stock,
+			),
+		};
+
+		expect(
+			stockPoints(
+				{ schemaVersion: 1, snapshots: [referenceSnapshot] },
+				`${metric.market}:${metric.code}`,
+				"reference",
+			),
+		).toEqual([
+			{
+				closePrice: metric.latestPrice,
+				date: snapshot.marketDate,
+				fiscalYear: 2025,
+				metricValue: 5,
+			},
+		]);
+	});
 });

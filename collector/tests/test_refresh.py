@@ -58,8 +58,8 @@ class LatestRefreshTest(unittest.TestCase):
         self.dividends = {
             (stock.market, stock.code): (
                 CashDividend(date(2025, 8, 28), Decimal("1")),
-                CashDividend(date(2025, 8, 29), Decimal("0.2")),
-                CashDividend(date(2026, 8, 28), Decimal("0.3")),
+                CashDividend(date(2025, 8, 29), Decimal("0.2"), 2025, "中期分红"),
+                CashDividend(date(2026, 8, 28), Decimal("0.3"), 2025, "年度分红"),
                 CashDividend(date(2026, 8, 29), Decimal("9")),
             )
             for stock in self.catalog.stocks
@@ -76,6 +76,15 @@ class LatestRefreshTest(unittest.TestCase):
         self.assertEqual(document.futures[0].discount_points, Decimal("36"))
         self.assertEqual(document.stocks[0].implemented_dividend_per_share, Decimal("0.5"))
         self.assertEqual(document.stocks[0].dividend_yield, Decimal("0.05"))
+        self.assertEqual(document.stocks[0].completed_fiscal_year, 2025)
+        self.assertEqual(
+            document.stocks[0].completed_fiscal_year_dividend_per_share,
+            Decimal("0.5"),
+        )
+        self.assertEqual(
+            document.stocks[0].completed_fiscal_year_dividend_yield,
+            Decimal("0.05"),
+        )
 
     def test_publishes_atomically_only_for_changed_values(self) -> None:
         document = assemble_latest_document(

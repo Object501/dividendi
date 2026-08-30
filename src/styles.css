@@ -605,6 +605,43 @@ dd {
 	box-shadow: var(--control-shadow);
 }
 
+.segmented-control button:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+.dividend-basis {
+	display: grid;
+	gap: 0.65rem;
+	margin-top: 1rem;
+	padding: 0.8rem;
+	background: var(--surface-subtle);
+	border-radius: 0.9rem;
+}
+
+.dividend-basis > div {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.dividend-basis strong {
+	font-size: 0.76rem;
+}
+
+.dividend-basis span {
+	color: var(--muted);
+	font-size: 0.65rem;
+	line-height: 1.45;
+}
+
+.dividend-basis__control {
+	background: var(--paper);
+}
+
+.dividend-basis__control button[aria-pressed="true"] {
+	background: var(--control-bg);
+}
+
 .history-controls {
 	display: grid;
 	gap: 0.9rem;
@@ -753,6 +790,11 @@ dd {
 
 	.history-controls {
 		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
+	}
+
+	.dividend-basis {
+		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
+		align-items: center;
 	}
 
   .bottom-nav {

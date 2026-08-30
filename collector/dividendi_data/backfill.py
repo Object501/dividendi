@@ -39,6 +39,7 @@ from .formulas import (
     daily_discount_points,
     discount_points,
     implemented_dividend_per_share,
+    latest_completed_fiscal_year_dividend,
     trailing_dividend_yield,
 )
 from .history import retain_rolling_window
@@ -151,6 +152,7 @@ def assemble_backfilled_history(
                 exact=False,
             )
             dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
+            completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
             stock_metrics.append(
                 StockMetric(
                     market=stock.market,
@@ -160,6 +162,15 @@ def assemble_backfilled_history(
                     dividend_yield=trailing_dividend_yield(dividend_per_share, latest_price),
                     price_source=BAOSTOCK_HISTORY_SOURCE,
                     dividend_source=CNINFO_SOURCE,
+                    completed_fiscal_year=None if completed is None else completed[0],
+                    completed_fiscal_year_dividend_per_share=(
+                        None if completed is None else completed[1]
+                    ),
+                    completed_fiscal_year_dividend_yield=(
+                        None
+                        if completed is None
+                        else trailing_dividend_yield(completed[1], latest_price)
+                    ),
                 )
             )
 

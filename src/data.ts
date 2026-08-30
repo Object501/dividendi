@@ -20,6 +20,9 @@ export interface StockMetric {
 	readonly dividendYield: number;
 	readonly priceSource: string;
 	readonly dividendSource: string;
+	readonly completedFiscalYear?: number;
+	readonly completedFiscalYearDividendPerShare?: number;
+	readonly completedFiscalYearDividendYield?: number;
 }
 
 export interface LatestData {
@@ -77,6 +80,26 @@ function positiveInteger(
 		throw new Error(`${path}.${key} 必须是正整数`);
 	}
 	return value as number;
+}
+
+function optionalDecimalString(
+	record: Record<string, unknown>,
+	key: string,
+	path: string,
+): number | undefined {
+	return Object.hasOwn(record, key)
+		? decimalString(record, key, path)
+		: undefined;
+}
+
+function optionalPositiveInteger(
+	record: Record<string, unknown>,
+	key: string,
+	path: string,
+): number | undefined {
+	return Object.hasOwn(record, key)
+		? positiveInteger(record, key, path)
+		: undefined;
 }
 
 function isoDate(
@@ -149,6 +172,43 @@ function parseStockMetric(value: unknown, path: string): StockMetric {
 		throw new Error(`${path} 必须是对象`);
 	}
 
+	const completedFiscalYear = optionalPositiveInteger(
+		value,
+		"completedFiscalYear",
+		path,
+	);
+	const completedFiscalYearDividendPerShare = optionalDecimalString(
+		value,
+		"completedFiscalYearDividendPerShare",
+		path,
+	);
+	const completedFiscalYearDividendYield = optionalDecimalString(
+		value,
+		"completedFiscalYearDividendYield",
+		path,
+	);
+	const completedFields = [
+		completedFiscalYear,
+		completedFiscalYearDividendPerShare,
+		completedFiscalYearDividendYield,
+	];
+	if (
+		completedFields.some((field) => field === undefined) &&
+		completedFields.some((field) => field !== undefined)
+	) {
+		throw new Error(`${path} 的完整财年分红字段必须同时提供`);
+	}
+
+	const completedMetric =
+		completedFiscalYear === undefined ||
+		completedFiscalYearDividendPerShare === undefined ||
+		completedFiscalYearDividendYield === undefined
+			? {}
+			: {
+					completedFiscalYear,
+					completedFiscalYearDividendPerShare,
+					completedFiscalYearDividendYield,
+				};
 	const metric: StockMetric = {
 		market: requiredString(value, "market", path),
 		code: requiredString(value, "code", path),
@@ -161,6 +221,7 @@ function parseStockMetric(value: unknown, path: string): StockMetric {
 		dividendYield: decimalString(value, "dividendYield", path),
 		priceSource: requiredString(value, "priceSource", path),
 		dividendSource: requiredString(value, "dividendSource", path),
+		...completedMetric,
 	};
 
 	if (metric.latestPrice <= 0) {
@@ -170,12 +231,30 @@ function parseStockMetric(value: unknown, path: string): StockMetric {
 		throw new Error(`${path}.implementedDividendPerShare 不能为负数`);
 	}
 	if (
+		metric.completedFiscalYearDividendPerShare !== undefined &&
+		metric.completedFiscalYearDividendPerShare < 0
+	) {
+		throw new Error(`${path}.completedFiscalYearDividendPerShare 不能为负数`);
+	}
+	if (
 		!closeEnough(
 			metric.dividendYield,
 			metric.implementedDividendPerShare / metric.latestPrice,
 		)
 	) {
 		throw new Error(`${path}.dividendYield 与分红和价格不一致`);
+	}
+	if (
+		metric.completedFiscalYearDividendPerShare !== undefined &&
+		metric.completedFiscalYearDividendYield !== undefined &&
+		!closeEnough(
+			metric.completedFiscalYearDividendYield,
+			metric.completedFiscalYearDividendPerShare / metric.latestPrice,
+		)
+	) {
+		throw new Error(
+			`${path}.completedFiscalYearDividendYield 与分红和价格不一致`,
+		);
 	}
 	return metric;
 }

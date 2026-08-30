@@ -37,6 +37,9 @@ class StockMetric:
     dividend_yield: Decimal
     price_source: str
     dividend_source: str
+    completed_fiscal_year: int | None = None
+    completed_fiscal_year_dividend_per_share: Decimal | None = None
+    completed_fiscal_year_dividend_yield: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,6 +109,18 @@ def _positive_integer(record: Mapping[str, object], key: str, path: str) -> int:
     return value
 
 
+def _optional_positive_integer(record: Mapping[str, object], key: str, path: str) -> int | None:
+    if key not in record:
+        return None
+    return _positive_integer(record, key, path)
+
+
+def _optional_decimal(record: Mapping[str, object], key: str, path: str) -> Decimal | None:
+    if key not in record:
+        return None
+    return _decimal(record, key, path)
+
+
 def _futures_metric(value: object, path: str, market_date: date) -> FuturesMetric:
     record = _mapping(value, path)
     metric = FuturesMetric(
@@ -134,6 +149,14 @@ def _futures_metric(value: object, path: str, market_date: date) -> FuturesMetri
 
 def _stock_metric(value: object, path: str) -> StockMetric:
     record = _mapping(value, path)
+    completed_fiscal_year = _optional_positive_integer(record, "completedFiscalYear", path)
+    completed_dividend = _optional_decimal(record, "completedFiscalYearDividendPerShare", path)
+    completed_yield = _optional_decimal(record, "completedFiscalYearDividendYield", path)
+    completed_fields = (completed_fiscal_year, completed_dividend, completed_yield)
+    if any(value is None for value in completed_fields) and any(
+        value is not None for value in completed_fields
+    ):
+        raise ValueError(f"{path} 的完整财年分红字段必须同时提供")
     metric = StockMetric(
         market=_string(record, "market", path),
         code=_string(record, "code", path),
@@ -142,15 +165,32 @@ def _stock_metric(value: object, path: str) -> StockMetric:
         dividend_yield=_decimal(record, "dividendYield", path),
         price_source=_string(record, "priceSource", path),
         dividend_source=_string(record, "dividendSource", path),
+        completed_fiscal_year=completed_fiscal_year,
+        completed_fiscal_year_dividend_per_share=completed_dividend,
+        completed_fiscal_year_dividend_yield=completed_yield,
     )
     if metric.latest_price <= 0:
         raise ValueError(f"{path}.latestPrice 必须大于零")
     if metric.implemented_dividend_per_share < 0:
         raise ValueError(f"{path}.implementedDividendPerShare 不能为负数")
+    if (
+        metric.completed_fiscal_year_dividend_per_share is not None
+        and metric.completed_fiscal_year_dividend_per_share < 0
+    ):
+        raise ValueError(f"{path}.completedFiscalYearDividendPerShare 不能为负数")
     if metric.dividend_yield != trailing_dividend_yield(
         metric.implemented_dividend_per_share, metric.latest_price
     ):
         raise ValueError(f"{path}.dividendYield 与分红和价格不一致")
+    if (
+        metric.completed_fiscal_year_dividend_per_share is not None
+        and metric.completed_fiscal_year_dividend_yield
+        != trailing_dividend_yield(
+            metric.completed_fiscal_year_dividend_per_share,
+            metric.latest_price,
+        )
+    ):
+        raise ValueError(f"{path}.completedFiscalYearDividendYield 与分红和价格不一致")
     return metric
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from base64 import b64encode
 from collections.abc import Mapping
 from datetime import date
@@ -21,6 +22,7 @@ from .throttle import polite_delay
 CNINFO_DIVIDEND_URL = "https://webapi.cninfo.com.cn/api/sysapi/p_sysapi1139"
 CNINFO_SOURCE = "cninfo"
 _ENCRYPTION_KEY = b"1234567887654321"
+_REPORT_YEAR = re.compile(r"^(?P<year>\d{4})(?:年报|半年报|一季报|三季报)$")
 
 
 def create_accept_enckey(timestamp: int | None = None) -> str:
@@ -79,10 +81,21 @@ def parse_dividend_payload(payload: object, code: str) -> tuple[CashDividend, ..
             implementation_date = date.fromisoformat(payment_date)
         except ValueError as error:
             raise ValueError(f"{code}[{index}].F023D 不是有效日期") from error
+        report_period = record.get("F001V")
+        distribution_type = record.get("F044V")
+        fiscal_year = None
+        if isinstance(report_period, str):
+            match = _REPORT_YEAR.fullmatch(report_period.strip())
+            if match is not None:
+                fiscal_year = int(match.group("year"))
+        if not isinstance(distribution_type, str) or not distribution_type.strip():
+            distribution_type = None
         dividends.append(
             CashDividend(
                 implementation_date=implementation_date,
                 per_share=cash_per_ten / Decimal(10),
+                fiscal_year=fiscal_year,
+                distribution_type=distribution_type,
             )
         )
 

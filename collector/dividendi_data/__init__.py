@@ -29,6 +29,7 @@ from .formulas import (
     daily_discount_points,
     discount_points,
     implemented_dividend_per_share,
+    latest_completed_fiscal_year_dividend,
     trailing_dividend_yield,
 )
 from .history import retain_rolling_window
@@ -70,6 +71,7 @@ __all__ = [
     "fetch_current_quotes",
     "fetch_stock_dividends",
     "implemented_dividend_per_share",
+    "latest_completed_fiscal_year_dividend",
     "latest_document_json",
     "load_history_document",
     "load_instruments",

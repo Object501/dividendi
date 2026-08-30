@@ -6,15 +6,21 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
+REGULAR_DISTRIBUTION_TYPES = frozenset({"年度分红", "中期分红", "季度分红"})
+
 
 @dataclass(frozen=True, slots=True)
 class CashDividend:
     implementation_date: date
     per_share: Decimal
+    fiscal_year: int | None = None
+    distribution_type: str | None = None
 
     def __post_init__(self) -> None:
         if self.per_share < 0:
             raise ValueError("每股现金分红不能为负数")
+        if self.fiscal_year is not None and self.fiscal_year <= 0:
+            raise ValueError("分红所属财年必须为正整数")
 
 
 def discount_points(index_level: Decimal, futures_price: Decimal) -> Decimal:
@@ -64,3 +70,31 @@ def trailing_dividend_yield(dividend_per_share: Decimal, latest_price: Decimal) 
     if latest_price <= 0:
         raise ValueError("最近价格必须大于零")
     return dividend_per_share / latest_price
+
+
+def latest_completed_fiscal_year_dividend(
+    dividends: tuple[CashDividend, ...],
+    as_of: date,
+) -> tuple[int, Decimal] | None:
+    """Return regular DPS for the latest fiscal year with a paid annual dividend."""
+
+    implemented = tuple(dividend for dividend in dividends if dividend.implementation_date <= as_of)
+    completed_years = tuple(
+        dividend.fiscal_year
+        for dividend in implemented
+        if dividend.fiscal_year is not None and dividend.distribution_type == "年度分红"
+    )
+    if not completed_years:
+        return None
+
+    fiscal_year = max(completed_years)
+    per_share = sum(
+        (
+            dividend.per_share
+            for dividend in implemented
+            if dividend.fiscal_year == fiscal_year
+            and dividend.distribution_type in REGULAR_DISTRIBUTION_TYPES
+        ),
+        start=Decimal(0),
+    )
+    return fiscal_year, per_share

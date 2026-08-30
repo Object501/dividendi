@@ -6,8 +6,9 @@
 
 1. Discount and daily discount points for every currently traded contract of
    configured CFFEX stock-index futures products.
-1. Gross dividend yield for configured A-shares using cash dividends paid in
-   the preceding 365 calendar days and the latest unadjusted price.
+1. Gross dividend yield for configured A-shares using either cash dividends
+   paid in the preceding 365 calendar days or the latest completed fiscal
+   year's regular dividends, divided by the same-day unadjusted price.
 
 UI and public README text must be Simplified Chinese. This is personal research,
 not investment advice.
@@ -20,6 +21,10 @@ not investment advice.
 - CFFEX expiry is the third Friday, postponed to the next trading session.
 - `股息率 = 过去365天已派发每股现金分红 / 最近不复权价`. Use payment date;
   exclude announced-but-unpaid plans, tax, reinvestment, and forecasts.
+- `购买参考股息率 = 最近完整派息财年的常规每股现金分红 / 当日不复权收盘价`.
+  A fiscal year is complete only after its annual dividend is paid. Include
+  regular annual/interim/quarterly payouts for that year, exclude special
+  dividends, and never look ahead.
 - Public financial decimals are JSON strings and are recomputed during Python
   and TypeScript validation. Publish complete, common-date data only.
 - `latest.json` is atomically replaced only when financial values change.
@@ -81,6 +86,9 @@ not investment advice.
   palettes, verified at 360/390 px without horizontal overflow.
 - [x] Historical dual-axis charts and summaries pair dividend yield or daily
   discount points with the same trading day's close.
+- [x] Added a historical dividend-basis switch between trailing 365-day yield
+  and a completed-fiscal-year purchase reference that excludes special
+  dividends and avoids mechanical rolling-window exits.
 - [x] Backfilled 242 trading-session closes for the rolling window and added
   on-demand selectable trend charts with 360/390 px browser QA.
 - [x] Store production JSON in a one-commit orphan `data` branch. Weekend,

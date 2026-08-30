@@ -28,7 +28,11 @@ class CNInfoDividendParserTest(unittest.TestCase):
         self.assertEqual(len(dividends), 2)
         self.assertEqual(dividends[0].implementation_date, date(2025, 12, 10))
         self.assertEqual(dividends[0].per_share, Decimal("0.152"))
+        self.assertEqual(dividends[0].fiscal_year, 2025)
+        self.assertEqual(dividends[0].distribution_type, "中期分红")
         self.assertEqual(dividends[1].per_share, Decimal("0.335"))
+        self.assertEqual(dividends[1].fiscal_year, 2025)
+        self.assertEqual(dividends[1].distribution_type, "年度分红")
 
     def test_ignores_non_cash_and_unpaid_plans(self) -> None:
         dividends = parse_dividend_payload(self.payload, "600000")
