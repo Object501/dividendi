@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .dividendi_data.archive import DEFAULT_HISTORY_PATH
+from .dividendi_data.archive import DEFAULT_HISTORY_PATH, load_history_document
 from .dividendi_data.backfill import backfill_history, refresh_history
+from .dividendi_data.documents import load_latest_document
+from .dividendi_data.instruments import load_instruments
 from .dividendi_data.refresh import DEFAULT_LATEST_PATH, refresh_latest
 
 
@@ -21,6 +23,9 @@ def main() -> None:
     backfill = subparsers.add_parser("backfill-history", help="回填完整滚动历史")
     backfill.add_argument("--latest", type=Path, default=DEFAULT_LATEST_PATH)
     backfill.add_argument("--output", type=Path, default=DEFAULT_HISTORY_PATH)
+    validate = subparsers.add_parser("validate-data", help="校验待发布的完整数据集")
+    validate.add_argument("--latest", type=Path, default=DEFAULT_LATEST_PATH)
+    validate.add_argument("--history", type=Path, default=DEFAULT_HISTORY_PATH)
     arguments = parser.parse_args()
 
     if arguments.command == "refresh-latest":
@@ -34,6 +39,11 @@ def main() -> None:
         state = "已更新" if result.changed else "未变化"
         interval = f"{result.start} 至 {result.end}"
         print(f"历史回填{state}: {interval}。共 {result.snapshot_count} 个交易日")
+    elif arguments.command == "validate-data":
+        catalog = load_instruments()
+        load_latest_document(arguments.latest, catalog)
+        load_history_document(arguments.history, catalog)
+        print("待发布数据格式有效")
 
 
 if __name__ == "__main__":

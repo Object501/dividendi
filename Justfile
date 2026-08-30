@@ -27,6 +27,10 @@ history:
 backfill:
     python3 -m collector backfill-history
 
+# Validate both generated JSON documents before publishing.
+validate:
+    python3 -m collector validate-data
+
 # Run unit tests.
 test:
     pnpm test
