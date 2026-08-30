@@ -7,6 +7,7 @@ from .formulas import (
     implemented_dividend_per_share,
     trailing_dividend_yield,
 )
+from .history import retain_rolling_window
 from .instruments import (
     FuturesProduct,
     InstrumentCatalog,
@@ -25,5 +26,6 @@ __all__ = [
     "implemented_dividend_per_share",
     "load_instruments",
     "parse_instruments",
+    "retain_rolling_window",
     "trailing_dividend_yield",
 ]
