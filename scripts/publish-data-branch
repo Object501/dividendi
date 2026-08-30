@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if (( $# < 1 || $# > 2 )); then
+	echo "usage: scripts/publish-data-branch DATA_DIRECTORY [REMOTE]" >&2
+	exit 2
+fi
+
+data_directory=$1
+remote=${2:-origin}
+
+for filename in latest.json history.json; do
+	if [[ ! -f "$data_directory/$filename" ]]; then
+		echo "missing data file: $data_directory/$filename" >&2
+		exit 2
+	fi
+done
+
+git_directory=$(git rev-parse --absolute-git-dir)
+data_directory=$(cd "$data_directory" && pwd)
+expected_commit=$(git ls-remote --heads "$remote" refs/heads/data | cut -f1)
+temporary_directory=$(mktemp -d)
+trap 'rm -rf -- "$temporary_directory"' EXIT
+
+export GIT_DIR=$git_directory
+export GIT_INDEX_FILE=$temporary_directory/index
+export GIT_WORK_TREE=$data_directory
+
+git read-tree --empty
+git add -- latest.json history.json
+tree=$(git write-tree)
+commit=$(printf 'Update market data.\n' | git commit-tree "$tree")
+
+git push \
+	"$remote" \
+	"$commit:refs/heads/data" \
+	"--force-with-lease=refs/heads/data:$expected_commit"
+
+printf '%s\n' "$commit"

@@ -8,6 +8,7 @@
 /node_modules
 /dist
 /.data
+/public/data
 /coverage
 *.tsbuildinfo
 
