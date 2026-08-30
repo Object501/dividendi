@@ -1,120 +1,82 @@
 # AGENTS.md
 
-## Mission
+## Product
 
-`dividendi` is a mobile-first Chinese website for:
+`dividendi` is a mobile-first Chinese static site for:
 
-1. Every currently traded contract of the configured CFFEX stock-index futures
-   products, with daily discount points in text and charts.
-1. Dividend yields from recent prices for the configured A-shares.
+1. Discount and daily discount points for every currently traded contract of
+   configured CFFEX stock-index futures products.
+1. Gross dividend yield for configured A-shares using cash dividends paid in
+   the preceding 365 calendar days and the latest unadjusted price.
 
-UI and the public README are Simplified Chinese. Internal code/notes may be
-English. The output is historical information, not investment advice.
+UI and public README text must be Simplified Chinese. This is personal research,
+not investment advice.
 
-## Design
+## Invariants
 
-- Static GitHub Pages; no runtime backend, accounts, or database.
-- React + TypeScript + Vite with responsive CSS and tree-shaken ECharts. Use
-  Python only in GitHub Actions for data collection. No browser Python, C++,
-  WebAssembly, or SSR unless a measured need appears.
-- Plan split refreshes: replace `data/latest.json` nominally hourly during
-  trading hours and update `data/history.json` once nightly. Never poll a
-  provider or the static file more often than once per 5 minutes.
-- The UI fetches `latest.json` at startup, then hourly while visible and the
-  market is open; it pauses while hidden/offline/outside trading hours.
-- Keep a schema-versioned rolling EOD window: retain market dates in the 365
-  calendar days ending at the newest snapshot and prune older entries after a
-  successful update. Initial backfill covers only that window. Git history may
-  retain old blobs; accept this while the data remains small.
-- Future update CI writes proposed data separately and validates it before
-  replacing tracked files. Invalid or unchanged output produces no commit and
-  no Pages deployment. Valid changed output is committed directly to `main`,
-  then built and deployed exactly once in that workflow; do not rely on the bot
-  push to trigger another workflow.
-- Keep the last good data on failure and display its source time/staleness. Load
-  history on demand.
-- Use pnpm/Vite and Nix-managed development tools. Keep Nix, Markdown, commit,
-  Actions, web/TypeScript, and Python checks; omit unused Bazel, C++, and Rust
-  tooling.
-- `config/instruments.json` is the only instrument catalog. The TypeScript UI
-  imports it and the Python collector reads it; never duplicate futures,
-  underlyings, stock codes, display names, or ordering in code. Both consumers
-  iterate its arrays; provider adapters derive their symbols from the configured
-  exchange/market and code.
-- Native Nix targets are `aarch64-darwin`, `aarch64-linux`, and
-  `x86_64-linux`; there are no cross-compilation outputs.
-- Target commands: `nix develop`, `just check`, `just test`, `just build`,
-  `just data`, and `nix flake check`.
+- `config/instruments.json` is the only futures/underlying/stock catalog. Python
+  and TypeScript validate and iterate it; never duplicate codes, names, or order.
+- `贴水 = 指数 - 期货`; positive means discount. `日化贴水 = 贴水 / 剩余交易日`. Intraday includes today; EOD starts with the next session.
+- CFFEX expiry is the third Friday, postponed to the next trading session.
+- `股息率 = 过去365天已派发每股现金分红 / 最近不复权价`. Use payment date;
+  exclude announced-but-unpaid plans, tax, reinvestment, and forecasts.
+- Public financial decimals are JSON strings and are recomputed during Python
+  and TypeScript validation. Publish complete, common-date data only.
+- `latest.json` is atomically replaced only when financial values change.
+  `history.json` replaces the same market date and retains exactly
+  `(newest - 365 days, newest]`; never archive an intraday snapshot.
+- Browser polling is hourly, visible/online, and limited to the China-market
+  refresh window. Every trigger shares a hard five-minute minimum gap.
 
-## Formulas
+## Architecture
 
-- `贴水点数 = 同时点标的指数点位 - 期货合约价格`; positive is discount and
-  negative is premium. Use latest prices intraday and same-day closes for EOD.
-- `日化贴水点数 = 贴水点数 / 剩余交易日数`. While the market is open, count
-  today and later sessions through expiry; for EOD history, count sessions
-  strictly after the snapshot date. Omit when no session remains.
-- Derive expiry from CFFEX's third-Friday rule and the trading calendar.
-- `近12个月税前股息率 = 过去365天已实施的每股现金分红 / 最近不复权价格`.
-- Exclude tax, reinvestment, forecasts, and price appreciation. Keep formulas
-  deterministic and separate from collection/UI.
-
-## Data
-
-- Intraday futures, underlying-index, and stock quotes: Sina adapters through
-  AKShare. Treat the one-hour interval as a provider-protection limit, not a
-  freshness SLA.
-- EOD futures OHLC: CFFEX daily CSV via AKShare `get_futures_daily`.
-- EOD underlying-index and stock closes: BaoStock, unadjusted.
-- Dividends: CNInfo via AKShare `stock_dividend_cninfo`.
-- Isolate providers behind adapters. Store source, fetch time, market date, raw
-  values, and schema version. Before publish, require a common market date,
-  unique contracts, all configured stocks, and finite/plausible values.
-- Smoke test 2026-08-30: Sina returned every contract, underlying index, and
-  stock in the current catalog; the EOD sources also worked without
-  credentials. Eastmoney current-quote adapters, AKShare's CSI history adapter,
-  and CFFEX contract metadata failed, so do not make them critical. TianQin is
-  excluded: it requires an account and its A-share data is paid.
-- This is a personal, non-commercial site. Free endpoints still have no SLA or
-  assured redistribution right; confirm attribution and never hide stale or
-  partial data.
+- React + TypeScript + Vite; lazy, tree-shaken ECharts. Static GitHub Pages;
+  no runtime backend, accounts, database, browser Python, C++, WASM, or SSR.
+- Python collector with narrow provider adapters: Sina current quotes, CNInfo
+  implemented cash dividends, CFFEX rules, and the SSE trading calendar.
+- `public/data/latest.json` and `public/data/history.json` ship with the site.
+  Preserve last-good files when fetching or validation fails.
+- pnpm lockfile plus Nixpkgs `fetchPnpmDeps`; no node2nix. Python and development
+  packages come from pinned Nixpkgs. Put missing packages in `nix/overlay.nix`;
+  do not add uv/pip environments.
+- Native systems: `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`.
 
 ## Mobile UX
 
-- Design at 360/390 px first; desktop is an enhancement. Avoid horizontal page
-  scrolling, hover-only details, chart-only information, and targets under
-  44 px. Support safe areas, accessible contrast, and explicit empty/error/
-  stale states.
-- Put data date and a Chinese text summary before each lazy-loaded chart.
-- Futures: contract cards, maturity/discount chart, selectable history.
-  Dividends: ranked cards/bar chart with price, TTM dividend, yield, and
-  relevant dates.
+- Design at 360/390 px first; no horizontal page scroll, hover-only content,
+  chart-only facts, or targets below 44 px. Support safe areas and reduced motion.
+- Show market/fetch time and Chinese summaries before charts. Keep explicit
+  loading, error, empty, and last-good states.
+
+## Commands
+
+- `nix develop`; `just setup`
+- `just check`; `just test`; `just ci`
+- `just data`; `just history`; `just build`
 
 ## Progress
 
-- [x] Capture product, language, hosting, mobile, and framework requirements.
-- [x] Research and smoke-test the initial data-source chain.
-- [x] Propose architecture, formulas, data flow, and mobile UX.
-- [x] Confirm trading-day discount and preceding-365-day dividend formulas.
-- [x] Add simplified native Nix shells/checks and a locked dependency graph.
-- [x] Add the shared configurable futures/stock instrument catalog.
-- [ ] Define fixtures/schema; implement and test collectors.
-- [ ] Backfill data; implement hand-checked formula tests.
-- [ ] Build and mobile-test both views.
-- [ ] Add gated data-update CI and Pages deployment when the collectors and UI
-  exist.
-- [ ] Review data terms; add attribution/disclaimer.
+- [x] Nix dev shell/checks/package and pnpm dependency lock.
+- [x] Shared instrument catalog, formulas, CFFEX sessions, and 365-day retention.
+- [x] Fixture-tested Sina and CNInfo adapters; live-smoked the configured catalog.
+- [x] Validated/atomic latest publisher and rolling EOD history publisher.
+- [x] Seed data for 2026-08-28.
+- [x] Chinese mobile UI with text, current cross-sectional charts, responsive
+  empty/error states, and 360/390 px browser QA.
+- [ ] Optional: backfill the rolling window and add selectable trend charts.
+- [ ] Add update/Pages workflows only when requested. Planned behavior: generate
+  proposed data, validate, and exit without commit/deploy when unchanged; for a
+  valid change, commit to `main` and deploy exactly once in the same workflow.
+- [ ] Review provider attribution/redistribution terms before public launch.
 
-Current stage: development environment complete; data schema/fixtures are next.
-Update this section after every material step.
+Current stage: the local vertical slice is complete. A new session should choose
+between historical backfill/trends and CI/Pages deployment; CI is intentionally
+absent for now.
 
 ## Working rules
 
-- Preserve GPL-3.0; never commit credentials or generated local output.
-- Take development and collector Python packages from the pinned Nixpkgs. If a
-  package is missing, define it in a repository Nix overlay; do not add a
-  `uv`/`pip`-managed environment.
-- Test parsers with fixtures, not live calls; add regression tests for defects.
-- Keep changes focused and public behavior documented in Chinese.
-- Use commit style `type: lowercase summary.` (72 characters max).
-- Run narrow and repository-wide checks; report anything not run.
-- Update decisions/progress here before ending a work session.
+- Preserve GPL-3.0; never commit credentials or local build artifacts.
+- Test parsers with fixtures, not live calls. Add regression tests for defects.
+- Keep commits focused; use `type: lowercase summary.` (72 characters max).
+- Run narrow and repository-wide checks. Update this progress section after each
+  material stage.

@@ -1,23 +1,55 @@
 # dividendi
 
-计算红利股的等效利息。
-Dividendi 在拉丁文中是 "of the dividend" 的意思，即“关于股息的”。
+一个面向手机的静态网站，用统一、可复核的口径查看：
+
+- 当前在交易的中证 1000 股指期货（IM）各合约贴水和日化贴水；
+- 自选 A 股过去 365 天已实施现金分红对应的税前股息率。
+
+标的清单不是写死在程序里，而是统一读取
+[`config/instruments.json`](config/instruments.json)。目前包含建设银行、工商银行、中国神华、
+中远海控和中国平安。
+
+## 计算口径
+
+```text
+贴水点数 = 同时点标的指数点位 - 期货价格
+日化贴水点数 = 贴水点数 / 到期前剩余交易日数
+近 365 天税前股息率 = 过去 365 天已派发的每股现金分红 / 最近不复权价格
+```
+
+贴水为正、升水为负。盘中计算包含当天交易日，日终快照从下一交易日开始计数。现金分红以
+派息日为已实施日期，不包含尚未派发的方案、税费或再投资收益。
+
+## 技术结构
+
+网页使用 React、TypeScript、Vite 和按需加载的 ECharts，构建结果是可直接托管到 GitHub
+Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资讯公开接口，先进行严格校验，再
+原子更新：
+
+- `public/data/latest.json`：当前行情；数值没有变化时不重写文件；
+- `public/data/history.json`：日终快照；同日覆盖，并只保留最新交易日向前 365 天。
+
+历史目前从 2026-08-28 的首份快照开始积累，尚未进行历史回填。自动更新和 Pages 部署流程
+也暂未启用。
 
 ## 开发
 
-项目使用 Nix 提供开发工具，支持 `aarch64-darwin`、`aarch64-linux` 和
-`x86_64-linux`：
+项目使用 Nix 提供完整工具链，支持 `aarch64-darwin`、`aarch64-linux` 和
+`x86_64-linux`。JavaScript 依赖由 pnpm 锁定，并通过 Nixpkgs 的 pnpm 构建钩子打包；
+Python 依赖来自固定的 Nixpkgs 和仓库 overlay，不使用 uv 或 pip 环境。
 
 ```sh
 nix develop
-just setup
-just check
-just build
-just ci
+just setup     # 安装锁定的前端依赖
+just check     # 格式、静态检查、类型检查和单元测试
+just data      # 抓取并验证最新行情
+just history   # 把已发布的日终行情写入滚动历史
+just build     # 构建静态网站
+just ci        # 执行 Nix 检查
 ```
 
-## 标的配置
+数据源：[新浪财经](https://finance.sina.com.cn/)、[巨潮资讯](https://webapi.cninfo.com.cn/)、
+[中国金融期货交易所](https://www.cffex.com.cn/zz1000/)。免费公开接口不提供可用性保证；网站
+显示数据日期和抓取时间，内容仅供个人研究，不构成投资建议。
 
-期货品种、对应指数和股票清单统一配置在
-[`config/instruments.json`](config/instruments.json)。网页和每日数据下载程序均读取该文件，
-代码中不另行维护标的清单。
+本项目以 GPL-3.0 许可证发布。Dividendi 在拉丁文中意为“关于股息的”。
