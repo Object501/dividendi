@@ -26,6 +26,42 @@ describe("parseLatestData", () => {
 		).toThrow("dailyDiscountPoints 与贴水和剩余交易日不一致");
 	});
 
+	it("rejects fields outside the generated structural validator", () => {
+		expect(() =>
+			parseLatestData({ ...latestFixture, unexpected: true }, instruments),
+		).toThrow("public-data-v1 JSON Schema");
+	});
+
+	it("lets the generated validator enforce fiscal-year field dependencies", () => {
+		expect(() =>
+			parseLatestData(
+				{
+					...latestFixture,
+					stocks: [
+						{ ...latestFixture.stocks[0], completedFiscalYear: 2025 },
+						...latestFixture.stocks.slice(1),
+					],
+				},
+				instruments,
+			),
+		).toThrow("public-data-v1 JSON Schema");
+	});
+
+	it("keeps dividend formulas as an independent semantic check", () => {
+		expect(() =>
+			parseLatestData(
+				{
+					...latestFixture,
+					stocks: [
+						{ ...latestFixture.stocks[0], dividendYield: "0.06" },
+						...latestFixture.stocks.slice(1),
+					],
+				},
+				instruments,
+			),
+		).toThrow("dividendYield 与分红和价格不一致");
+	});
+
 	it("rejects an incomplete stock list", () => {
 		expect(() =>
 			parseLatestData(

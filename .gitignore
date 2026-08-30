@@ -9,6 +9,7 @@ node_modules/
 /dist
 /.data
 /public/data
+/frontend/src/generated/
 /coverage
 *.tsbuildinfo
 

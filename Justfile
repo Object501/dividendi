@@ -5,6 +5,10 @@ default:
 setup:
     pnpm install --frozen-lockfile
 
+# Regenerate the browser's structural validators from the public JSON Schema.
+generate-data-validator:
+    pnpm generate:data-validator
+
 # Run formatting, lint, type, and unit checks.
 check:
     pre-commit run --all-files

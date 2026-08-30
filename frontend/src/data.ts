@@ -1,4 +1,9 @@
 import type { InstrumentConfig } from "./config";
+import {
+	type PublicDataValidator,
+	validateHistoryDocument,
+	validateLatestDocument,
+} from "./generated/publicDataValidators.js";
 
 export interface FuturesMetric {
 	readonly productCode: string;
@@ -38,83 +43,67 @@ export interface HistoryData {
 	readonly snapshots: readonly LatestData[];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function requiredString(
-	record: Record<string, unknown>,
-	key: string,
-	path: string,
-): string {
-	const value = record[key];
-	if (typeof value !== "string" || value.trim() === "") {
-		throw new Error(`${path}.${key} 必须是非空字符串`);
-	}
-	return value;
-}
-
-function decimalString(
+function decimalNumber(
 	record: Record<string, unknown>,
 	key: string,
 	path: string,
 ): number {
-	const value = record[key];
-	if (typeof value !== "string" || value.trim() === "") {
-		throw new Error(`${path}.${key} 必须是十进制字符串`);
-	}
-	const number = Number(value);
+	const number = Number(record[key]);
 	if (!Number.isFinite(number)) {
-		throw new Error(`${path}.${key} 必须是有限数值`);
+		throw new Error(`${path}.${key} 超出浏览器的有限数值范围`);
 	}
 	return number;
 }
 
-function positiveInteger(
-	record: Record<string, unknown>,
-	key: string,
-	path: string,
-): number {
-	const value = record[key];
-	if (!Number.isInteger(value) || (value as number) <= 0) {
-		throw new Error(`${path}.${key} 必须是正整数`);
-	}
-	return value as number;
-}
-
-function optionalDecimalString(
+function optionalDecimalNumber(
 	record: Record<string, unknown>,
 	key: string,
 	path: string,
 ): number | undefined {
-	return Object.hasOwn(record, key)
-		? decimalString(record, key, path)
-		: undefined;
+	return record[key] === undefined
+		? undefined
+		: decimalNumber(record, key, path);
 }
 
-function optionalPositiveInteger(
-	record: Record<string, unknown>,
-	key: string,
-	path: string,
-): number | undefined {
-	return Object.hasOwn(record, key)
-		? positiveInteger(record, key, path)
-		: undefined;
+function validationPath(documentName: string, instancePath: string): string {
+	return `${documentName}${instancePath.replaceAll("/", ".")}`;
 }
 
-function isoDate(
-	record: Record<string, unknown>,
-	key: string,
-	path: string,
-): string {
-	const value = requiredString(record, key, path);
-	if (
-		!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-		Number.isNaN(Date.parse(`${value}T00:00:00Z`))
-	) {
-		throw new Error(`${path}.${key} 必须是 ISO 日期`);
+function assertStructure(
+	value: unknown,
+	validator: PublicDataValidator,
+	documentName: string,
+): void {
+	if (validator(value)) {
+		return;
 	}
-	return value;
+	const error = validator.errors?.[0];
+	const path = validationPath(documentName, error?.instancePath ?? "");
+	throw new Error(
+		`${path} 不符合 public-data-v1 JSON Schema${error?.message === undefined ? "" : `：${error.message}`}`,
+	);
+}
+
+function optionalIntegerValue(
+	record: Record<string, unknown>,
+	key: string,
+): number | undefined {
+	return record[key] === undefined ? undefined : (record[key] as number);
+}
+
+function stringValue(record: Record<string, unknown>, key: string): string {
+	return record[key] as string;
+}
+
+function arrayValue(
+	record: Record<string, unknown>,
+	key: string,
+): readonly unknown[] {
+	return record[key] as readonly unknown[];
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+	return value as Record<string, unknown>;
 }
 
 function closeEnough(left: number, right: number): boolean {
@@ -129,20 +118,18 @@ function parseFuturesMetric(
 	path: string,
 	marketDate: string,
 ): FuturesMetric {
-	if (!isRecord(value)) {
-		throw new Error(`${path} 必须是对象`);
-	}
+	const record = objectValue(value);
 
 	const metric: FuturesMetric = {
-		productCode: requiredString(value, "productCode", path),
-		contractCode: requiredString(value, "contractCode", path),
-		expiryDate: isoDate(value, "expiryDate", path),
-		indexLevel: decimalString(value, "indexLevel", path),
-		futuresPrice: decimalString(value, "futuresPrice", path),
-		discountPoints: decimalString(value, "discountPoints", path),
-		remainingTradingDays: positiveInteger(value, "remainingTradingDays", path),
-		dailyDiscountPoints: decimalString(value, "dailyDiscountPoints", path),
-		source: requiredString(value, "source", path),
+		productCode: stringValue(record, "productCode"),
+		contractCode: stringValue(record, "contractCode"),
+		expiryDate: stringValue(record, "expiryDate"),
+		indexLevel: decimalNumber(record, "indexLevel", path),
+		futuresPrice: decimalNumber(record, "futuresPrice", path),
+		discountPoints: decimalNumber(record, "discountPoints", path),
+		remainingTradingDays: record.remainingTradingDays as number,
+		dailyDiscountPoints: decimalNumber(record, "dailyDiscountPoints", path),
+		source: stringValue(record, "source"),
 	};
 
 	if (metric.expiryDate < marketDate) {
@@ -168,59 +155,44 @@ function parseFuturesMetric(
 }
 
 function parseStockMetric(value: unknown, path: string): StockMetric {
-	if (!isRecord(value)) {
-		throw new Error(`${path} 必须是对象`);
-	}
+	const record = objectValue(value);
 
-	const completedFiscalYear = optionalPositiveInteger(
-		value,
+	const completedFiscalYear = optionalIntegerValue(
+		record,
 		"completedFiscalYear",
-		path,
 	);
-	const completedFiscalYearDividendPerShare = optionalDecimalString(
-		value,
+	const completedFiscalYearDividendPerShare = optionalDecimalNumber(
+		record,
 		"completedFiscalYearDividendPerShare",
 		path,
 	);
-	const completedFiscalYearDividendYield = optionalDecimalString(
-		value,
+	const completedFiscalYearDividendYield = optionalDecimalNumber(
+		record,
 		"completedFiscalYearDividendYield",
 		path,
 	);
-	const completedFields = [
-		completedFiscalYear,
-		completedFiscalYearDividendPerShare,
-		completedFiscalYearDividendYield,
-	];
-	if (
-		completedFields.some((field) => field === undefined) &&
-		completedFields.some((field) => field !== undefined)
-	) {
-		throw new Error(`${path} 的完整财年分红字段必须同时提供`);
-	}
-
 	const completedMetric =
-		completedFiscalYear === undefined ||
-		completedFiscalYearDividendPerShare === undefined ||
-		completedFiscalYearDividendYield === undefined
+		completedFiscalYear === undefined
 			? {}
 			: {
 					completedFiscalYear,
-					completedFiscalYearDividendPerShare,
-					completedFiscalYearDividendYield,
+					completedFiscalYearDividendPerShare:
+						completedFiscalYearDividendPerShare as number,
+					completedFiscalYearDividendYield:
+						completedFiscalYearDividendYield as number,
 				};
 	const metric: StockMetric = {
-		market: requiredString(value, "market", path),
-		code: requiredString(value, "code", path),
-		latestPrice: decimalString(value, "latestPrice", path),
-		implementedDividendPerShare: decimalString(
-			value,
+		market: stringValue(record, "market"),
+		code: stringValue(record, "code"),
+		latestPrice: decimalNumber(record, "latestPrice", path),
+		implementedDividendPerShare: decimalNumber(
+			record,
 			"implementedDividendPerShare",
 			path,
 		),
-		dividendYield: decimalString(value, "dividendYield", path),
-		priceSource: requiredString(value, "priceSource", path),
-		dividendSource: requiredString(value, "dividendSource", path),
+		dividendYield: decimalNumber(record, "dividendYield", path),
+		priceSource: stringValue(record, "priceSource"),
+		dividendSource: stringValue(record, "dividendSource"),
 		...completedMetric,
 	};
 
@@ -263,32 +235,22 @@ export function parseLatestData(
 	value: unknown,
 	instruments: InstrumentConfig,
 ): LatestData {
-	if (!isRecord(value)) {
-		throw new Error("行情数据必须是对象");
-	}
-	if (value.schemaVersion !== 1) {
-		throw new Error("不支持的行情数据版本");
-	}
-	if (!Array.isArray(value.futures) || value.futures.length === 0) {
-		throw new Error("futures 必须是非空数组");
-	}
-	if (!Array.isArray(value.stocks) || value.stocks.length === 0) {
-		throw new Error("stocks 必须是非空数组");
-	}
+	assertStructure(value, validateLatestDocument, "latest");
+	return parseStructuredLatestData(value, instruments);
+}
 
-	const marketDate = isoDate(value, "marketDate", "latest");
-	const fetchedAt = requiredString(value, "fetchedAt", "latest");
-	if (
-		Number.isNaN(Date.parse(fetchedAt)) ||
-		!/(?:Z|[+-]\d{2}:\d{2})$/.test(fetchedAt)
-	) {
-		throw new Error("latest.fetchedAt 必须是含时区的 ISO 时间");
-	}
+function parseStructuredLatestData(
+	value: unknown,
+	instruments: InstrumentConfig,
+): LatestData {
+	const record = objectValue(value);
+	const marketDate = stringValue(record, "marketDate");
+	const fetchedAt = stringValue(record, "fetchedAt");
 
-	const futures = value.futures.map((metric, index) =>
+	const futures = arrayValue(record, "futures").map((metric, index) =>
 		parseFuturesMetric(metric, `futures[${index}]`, marketDate),
 	);
-	const stocks = value.stocks.map((metric, index) =>
+	const stocks = arrayValue(record, "stocks").map((metric, index) =>
 		parseStockMetric(metric, `stocks[${index}]`),
 	);
 
@@ -327,17 +289,10 @@ export function parseHistoryData(
 	value: unknown,
 	instruments: InstrumentConfig,
 ): HistoryData {
-	if (!isRecord(value)) {
-		throw new Error("历史数据必须是对象");
-	}
-	if (value.schemaVersion !== 1) {
-		throw new Error("不支持的历史数据版本");
-	}
-	if (!Array.isArray(value.snapshots) || value.snapshots.length === 0) {
-		throw new Error("history.snapshots 必须是非空数组");
-	}
-	const snapshots = value.snapshots.map((snapshot) =>
-		parseLatestData(snapshot, instruments),
+	assertStructure(value, validateHistoryDocument, "history");
+	const record = objectValue(value);
+	const snapshots = arrayValue(record, "snapshots").map((snapshot) =>
+		parseStructuredLatestData(snapshot, instruments),
 	);
 	const dates = snapshots.map((snapshot) => snapshot.marketDate);
 	if (

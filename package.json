@@ -5,12 +5,13 @@
 	"type": "module",
 	"packageManager": "pnpm@11.22.0",
 	"scripts": {
-		"build": "tsc -b frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
-		"dev": "vite --config frontend/vite.config.ts",
+		"build": "pnpm generate:data-validator && tsc -b frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
+		"dev": "pnpm generate:data-validator && vite --config frontend/vite.config.ts",
+		"generate:data-validator": "node frontend/scripts/generate-data-validator.mjs",
 		"preview": "vite preview --config frontend/vite.config.ts",
-		"test": "vitest run --config frontend/vite.config.ts",
-		"typecheck": "tsc -b frontend/tsconfig.json",
-		"validate:data-contract": "vitest run --config frontend/vite.config.ts src/publishedData.test.ts"
+		"test": "pnpm generate:data-validator && vitest run --config frontend/vite.config.ts",
+		"typecheck": "pnpm generate:data-validator && tsc -b frontend/tsconfig.json",
+		"validate:data-contract": "pnpm generate:data-validator && vitest run --config frontend/vite.config.ts src/publishedData.test.ts"
 	},
 	"dependencies": {
 		"echarts": "6.1.0",
@@ -22,6 +23,8 @@
 		"@types/react": "19.2.18",
 		"@types/react-dom": "19.2.5",
 		"@vitejs/plugin-react": "6.1.1",
+		"ajv": "8.20.0",
+		"ajv-formats": "3.0.1",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",
 		"vitest": "4.1.11"

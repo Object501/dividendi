@@ -90,9 +90,12 @@ ECharts；根目录只保留 Node.js 依赖声明、共享配置、Python 采集
 
 两份文件当前共同使用 `schemaVersion: 1`，其结构契约集中定义在
 [`schema/public-data-v1.schema.json`](schema/public-data-v1.schema.json)。发布前依次验证
-JSON Schema、Python 的公式与标的完整性等语义约束，并让前端自己的 TypeScript 解析器读取
-即将发布的两份真实文件。`just publish-data` 强制依赖这套校验；任何一层失败都不会创建或
-推送新的 `data` 分支提交。因此数据兼容性不只依赖采集脚本恰好生成前端能够识别的格式。
+JSON Schema、Python 的公式与标的完整性等语义约束，并让前端从 Schema 生成的结构校验器及
+手写公式复核读取即将发布的两份真实文件。生成器采用 Ajv standalone，只在开发和构建阶段
+编译 Schema，浏览器不在启动时动态编译。生成目录不进入 Git；开发服务、测试、类型
+检查、数据契约校验和正式构建都会先重新生成。`just publish-data` 强制依赖这套校验；
+任何一层失败都不会创建或推送新的 `data` 分支提交。因此数据兼容性不只依赖采集脚本恰好
+生成前端能够识别的格式。
 `v1` Schema 不做破坏性修改；将来升级时必须新增版本，先部署能同时读取新旧版本的前端，
 再让采集器开始写入新版本，避免 Pages 部署与定时数据任务并发造成短暂不兼容。
 
@@ -159,6 +162,7 @@ squash；只有分支中每条提交本身都符合格式时才使用 rebase。
 ```sh
 nix develop
 just setup     # 安装锁定的前端依赖
+just generate-data-validator # 可选：单独生成前端结构校验器
 just check     # 格式、静态检查、类型检查和单元测试
 just data      # 抓取并验证最新行情
 just history   # 抓取官方收盘并更新滚动历史

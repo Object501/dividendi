@@ -28,8 +28,12 @@ not investment advice.
 - Public financial decimals are JSON strings and are recomputed during Python
   and TypeScript validation. Publish complete, common-date data only.
 - `schema/public-data-v1.schema.json` is the sole structural contract for both
-  public JSON files. Before every publish, validate the exact candidate bytes
-  against it, Python semantics, and the production TypeScript parsers.
+  public JSON files. Generate the browser validators from it; keep handwritten
+  TypeScript only for numeric conversion and semantic checks. Never track the
+  generated validators; every frontend dev, test, typecheck, contract-validation,
+  and build command regenerates them first. Before every publish, validate the
+  exact candidate bytes against the schema, Python semantics, and the production
+  TypeScript parsers.
   Never change a published schema incompatibly: deploy a reader supporting both
   versions before switching the collector to a new schema version.
 - `latest.json` is atomically replaced only when financial values change.
@@ -89,6 +93,7 @@ not investment advice.
 ## Commands
 
 - `nix develop`; `just setup`
+- `just generate-data-validator`
 - `just check`; `just test`; `just ci`
 - `just data`; `just history`; `just backfill`; `just validate`
 - `just publish-data`; `just build`
@@ -101,6 +106,9 @@ not investment advice.
 - [x] Validated/atomic latest publisher and rolling EOD history publisher.
 - [x] Versioned the public JSON structure and made local/CI publication require
   JSON Schema, Python semantic, and production TypeScript parser validation.
+- [x] Generate the frontend structural validators from that schema while
+  retaining independent handwritten financial-semantic checks; keep generated
+  code out of Git and regenerate it before every frontend command.
 - [x] Keep generated JSON out of `main` while preserving local debugging through
   `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive
