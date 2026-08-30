@@ -15,6 +15,10 @@ check:
 build:
     pnpm build
 
+# Fetch, validate, and atomically publish the latest website data.
+data:
+    python3 -m collector refresh-latest
+
 # Run unit tests.
 test:
     pnpm test
