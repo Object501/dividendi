@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .formulas import CashDividend
 from .instruments import InstrumentCatalog, MarketInstrument
+from .throttle import polite_delay
 
 CNINFO_DIVIDEND_URL = "https://webapi.cninfo.com.cn/api/sysapi/p_sysapi1139"
 CNINFO_SOURCE = "cninfo"
@@ -122,4 +123,9 @@ def fetch_catalog_dividends(
 ) -> dict[tuple[str, str], tuple[CashDividend, ...]]:
     """Fetch implemented cash dividends for every configured stock."""
 
-    return {(stock.market, stock.code): fetch_stock_dividends(stock) for stock in catalog.stocks}
+    dividends: dict[tuple[str, str], tuple[CashDividend, ...]] = {}
+    for index, stock in enumerate(catalog.stocks):
+        if index > 0:
+            polite_delay()
+        dividends[(stock.market, stock.code)] = fetch_stock_dividends(stock)
+    return dividends

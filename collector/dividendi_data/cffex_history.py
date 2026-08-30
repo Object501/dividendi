@@ -11,6 +11,8 @@ from io import BytesIO, StringIO
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile, ZipFile
 
+from .throttle import polite_delay
+
 CFFEX_ARCHIVE_URL = "http://www.cffex.com.cn/sj/historysj/{month}/zip/{month}.zip"
 CFFEX_HISTORY_SOURCE = "cffex"
 _DAILY_FILE = re.compile(r"(?P<date>\d{8})_1\.csv$")
@@ -123,13 +125,17 @@ def fetch_cffex_closes(
 ) -> tuple[HistoricalFuturesClose, ...]:
     """Fetch configured futures closes across an inclusive date interval."""
 
-    return tuple(
-        close
-        for month in archive_months(start, end)
-        for close in parse_cffex_archive(
-            fetch_cffex_archive(month),
-            start,
-            end,
-            product_codes,
+    closes: list[HistoricalFuturesClose] = []
+    months = archive_months(start, end)
+    for index, month in enumerate(months):
+        if index > 0:
+            polite_delay()
+        closes.extend(
+            parse_cffex_archive(
+                fetch_cffex_archive(month),
+                start,
+                end,
+                product_codes,
+            )
         )
-    )
+    return tuple(closes)
