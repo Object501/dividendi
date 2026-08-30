@@ -13,3 +13,9 @@ nix develop
 just check
 nix flake check
 ```
+
+## 标的配置
+
+期货品种、对应指数和股票清单统一配置在
+[`config/instruments.json`](config/instruments.json)。网页和每日数据下载程序均读取该文件，
+代码中不另行维护标的清单。

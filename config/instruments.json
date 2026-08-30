@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"futuresProducts": [
+		{
+			"code": "IM",
+			"name": "中证1000股指期货",
+			"exchange": "CFFEX",
+			"underlying": {
+				"code": "000852",
+				"name": "中证1000",
+				"market": "SH"
+			}
+		}
+	],
+	"stocks": [
+		{
+			"code": "601939",
+			"name": "建设银行",
+			"market": "SH"
+		},
+		{
+			"code": "601398",
+			"name": "工商银行",
+			"market": "SH"
+		},
+		{
+			"code": "601088",
+			"name": "中国神华",
+			"market": "SH"
+		},
+		{
+			"code": "601919",
+			"name": "中远海控",
+			"market": "SH"
+		},
+		{
+			"code": "601318",
+			"name": "中国平安",
+			"market": "SH"
+		}
+	]
+}
