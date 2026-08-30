@@ -19,6 +19,7 @@ done
 
 git_directory=$(git rev-parse --absolute-git-dir)
 data_directory=$(cd "$data_directory" && pwd)
+script_directory=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 expected_commit=$(git ls-remote --heads "$remote" refs/heads/data | cut -f1)
 temporary_directory=$(mktemp -d)
 trap 'rm -rf -- "$temporary_directory"' EXIT
@@ -44,14 +45,7 @@ fi
 git read-tree --empty
 git add -- latest.json history.json
 tree=$(git write-tree)
-data_timestamp=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
-commit=$(
-	{
-		printf 'chore: update data @ %s\n\n' "$data_timestamp"
-		printf 'Files changed:\n'
-		printf -- '- %s\n' "${changed_files[@]}"
-	} | git commit-tree "$tree"
-)
+commit=$(bash "$script_directory/data-commit-message" "${changed_files[@]}" | git commit-tree "$tree")
 
 git push \
 	"$remote" \

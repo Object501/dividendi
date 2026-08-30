@@ -31,6 +31,10 @@ backfill:
 validate:
     python3 -m collector validate-data
 
+# Replace the remote data branch using the canonical commit-message generator.
+publish-data:
+    scripts/publish-data-branch "${DIVIDENDI_DATA_DIR:-.data}" origin
+
 # Run unit tests.
 test:
     pnpm test

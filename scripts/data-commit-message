@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if (( $# == 0 )); then
+	echo "usage: scripts/data-commit-message FILE..." >&2
+	exit 2
+fi
+
+data_timestamp=${DIVIDENDI_DATA_TIMESTAMP:-$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')}
+if [[ ! $data_timestamp =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}$ ]]; then
+	echo "DIVIDENDI_DATA_TIMESTAMP must use YYYY-MM-DD HH:mm" >&2
+	exit 2
+fi
+
+files=()
+for filename in "$@"; do
+	case "$filename" in
+	latest.json | history.json) ;;
+	*)
+		echo "unsupported data file: $filename" >&2
+		exit 2
+		;;
+	esac
+	for existing in "${files[@]}"; do
+		if [[ $existing == "$filename" ]]; then
+			echo "duplicate data file: $filename" >&2
+			exit 2
+		fi
+	done
+	files+=("$filename")
+done
+
+printf 'chore: update data @ %s\n\n' "$data_timestamp"
+printf 'Files changed:\n'
+printf -- '- %s\n' "${files[@]}"

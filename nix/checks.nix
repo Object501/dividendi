@@ -42,7 +42,14 @@
   };
 
   python-tests =
-    pkgs.runCommand "dividendi-python-tests" { nativeBuildInputs = [ pkgs.dividendi-python ]; }
+    pkgs.runCommand "dividendi-python-tests"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.dividendi-python
+          pkgs.git
+        ];
+      }
       ''
         cp -r ${src} source
         chmod -R u+w source

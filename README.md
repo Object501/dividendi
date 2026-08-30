@@ -94,6 +94,10 @@ GitHub Actions 在工作日交易时段约每小时只刷新 `latest.json`，并
 或数值未变化时不会重写 `data` 分支，也不会触发 Pages 部署；`main` 更新和真实数据变化各自
 只部署一次。
 
+CI 和本地发布都必须使用同一个 `scripts/publish-data-branch` 入口；本地可运行
+`just publish-data`。入口逐字节比较远端数据，并统一调用 `scripts/data-commit-message` 生成
+提交文案。两份 JSON 都变化时会如实列出两行，完全没有变化时不创建提交。
+
 `data` 分支提交使用北京时间，标题和正文明确记录实际变化的文件，例如：
 
 ```text
@@ -117,6 +121,7 @@ just data      # 抓取并验证最新行情
 just history   # 抓取官方收盘并更新滚动历史
 just backfill  # 带随机节流地重建最近 365 天收盘历史
 just validate  # 校验待发布的最新行情和历史
+just publish-data # 使用统一格式替换远端 data 分支
 just build     # 构建静态网站
 just ci        # 执行 Nix 检查
 ```
