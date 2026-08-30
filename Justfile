@@ -19,6 +19,10 @@ build:
 data:
     python3 -m collector refresh-latest
 
+# Add the published end-of-day snapshot to the rolling 365-day history.
+history:
+    python3 -m collector update-history
+
 # Run unit tests.
 test:
     pnpm test

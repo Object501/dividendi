@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, time
@@ -14,7 +12,13 @@ from zoneinfo import ZoneInfo
 
 from .calendar import cffex_expiry, remaining_trading_days
 from .cninfo import CNINFO_SOURCE, fetch_catalog_dividends
-from .documents import FuturesMetric, LatestDocument, StockMetric, parse_latest_document
+from .documents import (
+    FuturesMetric,
+    LatestDocument,
+    StockMetric,
+    atomic_write_json,
+    parse_latest_document,
+)
 from .formulas import (
     CashDividend,
     daily_discount_points,
@@ -183,26 +187,7 @@ def publish_latest_document(
         if replace(previous, fetched_at=document.fetched_at) == document:
             return False
 
-    encoded = f"{json.dumps(raw_document, ensure_ascii=False, indent='\t')}\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=path.parent,
-            prefix=f".{path.name}.",
-            delete=False,
-        ) as temporary:
-            temporary.write(encoded)
-            temporary.flush()
-            os.fsync(temporary.fileno())
-            temporary_path = Path(temporary.name)
-        os.replace(temporary_path, path)
-    finally:
-        if temporary_path is not None and temporary_path.exists():
-            temporary_path.unlink()
-    return True
+    return atomic_write_json(raw_document, path)
 
 
 def is_intraday_snapshot(fetched_at: datetime, market_date: date) -> bool:

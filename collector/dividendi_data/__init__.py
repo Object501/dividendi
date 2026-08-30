@@ -1,5 +1,12 @@
 """Shared data collection and validation code."""
 
+from .archive import (
+    HistoryDocument,
+    load_history_document,
+    parse_history_document,
+    publish_history_document,
+    update_history,
+)
 from .calendar import (
     ContractMonth,
     active_contract_codes,
@@ -46,6 +53,7 @@ __all__ = [
     "FuturesMetric",
     "FuturesProduct",
     "FuturesQuote",
+    "HistoryDocument",
     "InstrumentCatalog",
     "LatestDocument",
     "MarketInstrument",
@@ -62,14 +70,18 @@ __all__ = [
     "fetch_stock_dividends",
     "implemented_dividend_per_share",
     "latest_document_json",
+    "load_history_document",
     "load_instruments",
     "load_latest_document",
+    "parse_history_document",
     "parse_instruments",
     "parse_latest_document",
+    "publish_history_document",
     "publish_latest_document",
     "refresh_latest",
     "remaining_trading_days",
     "retain_rolling_window",
     "trading_sessions",
     "trailing_dividend_yield",
+    "update_history",
 ]

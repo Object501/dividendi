@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -195,3 +197,30 @@ def load_latest_document(path: Path, catalog: InstrumentCatalog) -> LatestDocume
 
     with path.open(encoding="utf-8") as source:
         return parse_latest_document(json.load(source), catalog)
+
+
+def atomic_write_json(value: object, path: Path) -> bool:
+    """Atomically write stable UTF-8 JSON and report whether bytes changed."""
+
+    encoded = f"{json.dumps(value, ensure_ascii=False, indent='\t')}\n".encode()
+    if path.exists() and path.read_bytes() == encoded:
+        return False
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            delete=False,
+        ) as temporary:
+            temporary.write(encoded)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+            temporary_path = Path(temporary.name)
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+    return True
