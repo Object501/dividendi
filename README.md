@@ -101,9 +101,9 @@ GitHub Actions 在工作日交易时段约每小时只刷新 `latest.json`，并
 或部署网站；只有 `main` 变化时才运行 GitHub Pages 构建和部署。因此定时工作流的触发次数
 不变，但真实数据变化也只运行一个更新任务，不再追加 Pages 的构建和部署任务。
 
-CI 和本地发布都必须使用同一个 `scripts/publish-data-branch` 入口；本地可运行
-`just publish-data`。入口逐字节比较远端数据，并统一调用 `scripts/data-commit-message` 生成
-提交文案。两份 JSON 都变化时会如实列出两行，完全没有变化时不创建提交。
+CI 和本地都通过 `just publish-data` 进入同一个 `scripts/publish-data-branch` 发布器。发布器
+逐字节比较远端数据，并统一调用 `scripts/data-commit-message` 生成提交文案。两份 JSON 都变化
+时会如实列出两行，完全没有变化时直接退出，不创建提交或推送。
 
 `data` 分支提交使用北京时间，标题和正文明确记录实际变化的文件，例如：
 

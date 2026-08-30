@@ -63,24 +63,14 @@ jobs:
           echo "value=$mode" >> "$GITHUB_OUTPUT"
       - name: Refresh latest snapshot
         if: steps.mode.outputs.value == 'latest' || steps.mode.outputs.value == 'all'
-        run: nix develop --command python3 -m collector refresh-latest
+        run: nix develop --command just data
       - name: Refresh official history
         if: steps.mode.outputs.value == 'history' || steps.mode.outputs.value == 'all'
-        run: nix develop --command python3 -m collector update-history
+        run: nix develop --command just history
       - name: Validate complete data set
-        run: nix develop --command python3 -m collector validate-data
-      - name: Compare with published data
-        id: compare
-        run: |
-          if cmp -s .data/latest.json .published-data/latest.json \
-            && cmp -s .data/history.json .published-data/history.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Replace data branch root commit
-        if: steps.compare.outputs.changed == 'true'
+        run: nix develop --command just validate
+      - name: Publish changed data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          scripts/publish-data-branch .data origin
+          nix develop --command just publish-data

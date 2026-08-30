@@ -121,9 +121,10 @@ after real-device use.
 ## Working rules
 
 - Preserve GPL-3.0; never commit credentials or local build artifacts.
-- Never construct or push a `data` branch commit by hand. Local and CI
-  publishing must use `scripts/publish-data-branch`, which delegates all commit
-  text to `scripts/data-commit-message` and lists every actually changed JSON.
+- Never construct or push a `data` branch commit by hand. Local and CI publishing
+  both run `just publish-data`, which delegates comparison and commit creation to
+  `scripts/publish-data-branch`; it lists every actually changed JSON through
+  `scripts/data-commit-message`.
 - Test parsers with fixtures, not live calls. Add regression tests for defects.
 - Keep commits focused; use `type: lowercase summary.` (72 characters max).
 - Run narrow and repository-wide checks. Update this progress section after each
