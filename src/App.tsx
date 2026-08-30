@@ -12,6 +12,10 @@ const numberFormat = new Intl.NumberFormat("zh-CN", {
 	minimumFractionDigits: 0,
 	maximumFractionDigits: 2,
 });
+const perShareDividendFormat = new Intl.NumberFormat("zh-CN", {
+	minimumFractionDigits: 2,
+	maximumFractionDigits: 2,
+});
 const percentFormat = new Intl.NumberFormat("zh-CN", {
 	style: "percent",
 	minimumFractionDigits: 2,
@@ -249,7 +253,7 @@ export function App() {
 										<p>
 											{stock.market} · {stock.code}
 											{metric
-												? ` · 最新价 ¥${numberFormat.format(metric.latestPrice)} · 分红 ¥${numberFormat.format(metric.implementedDividendPerShare)}`
+												? ` · 最新价 ¥${numberFormat.format(metric.latestPrice)} · 近365天分红 ¥${perShareDividendFormat.format(metric.implementedDividendPerShare)} / 股`
 												: ""}
 										</p>
 									</div>

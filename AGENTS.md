@@ -55,6 +55,8 @@ not investment advice.
   colors synchronized with the selected theme.
 - Show market/fetch time and Chinese summaries before charts. Keep explicit
   loading, error, empty, and last-good states.
+- Label trailing cash dividends explicitly in currency per share, formatted to
+  two decimal places instead of implying a whole-position cash amount.
 - Historical charts pair each metric with its same-day close: metric on the
   left axis and stock/futures close on the right axis.
 
