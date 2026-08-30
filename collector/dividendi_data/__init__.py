@@ -7,6 +7,7 @@ from .archive import (
     publish_history_document,
     update_history,
 )
+from .backfill import refresh_history
 from .calendar import (
     ContractMonth,
     active_contract_codes,
@@ -78,6 +79,7 @@ __all__ = [
     "parse_latest_document",
     "publish_history_document",
     "publish_latest_document",
+    "refresh_history",
     "refresh_latest",
     "remaining_trading_days",
     "retain_rolling_window",

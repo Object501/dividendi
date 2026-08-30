@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
 import unittest
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from collector.dividendi_data import CashDividend, load_instruments
-from collector.dividendi_data.backfill import assemble_backfilled_history
+from collector.dividendi_data.archive import load_history_document, publish_history_document
+from collector.dividendi_data.backfill import assemble_backfilled_history, refresh_history
 from collector.dividendi_data.baostock_history import HistoricalSpotClose
 from collector.dividendi_data.calendar import active_contract_codes
 from collector.dividendi_data.cffex_history import HistoricalFuturesClose
@@ -87,6 +92,50 @@ class HistoricalBackfillTest(unittest.TestCase):
                 self.futures[1:],
                 self.spots,
                 self.dividends,
+            )
+
+    def test_weekend_refresh_adds_friday_once_then_stays_idempotent(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            latest_path = root / "latest.json"
+            history_path = root / "history.json"
+            fixture = Path(__file__).parent / "fixtures" / "latest.json"
+            latest = json.loads(fixture.read_text(encoding="utf-8"))
+            latest["fetchedAt"] = "2026-08-30T10:00:00Z"
+            latest_path.write_text(json.dumps(latest), encoding="utf-8")
+            initial = assemble_backfilled_history(
+                self.catalog,
+                self.sessions[0],
+                self.sessions[0],
+                self.futures,
+                self.spots,
+                self.dividends,
+            )
+            publish_history_document(initial, self.catalog, history_path)
+
+            with (
+                patch(
+                    "collector.dividendi_data.backfill.fetch_cffex_closes",
+                    return_value=self.futures,
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_baostock_closes",
+                    return_value=self.spots,
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_catalog_dividends",
+                    return_value=self.dividends,
+                ),
+            ):
+                self.assertTrue(refresh_history(latest_path, history_path))
+                first_bytes = history_path.read_bytes()
+                self.assertFalse(refresh_history(latest_path, history_path))
+                self.assertEqual(history_path.read_bytes(), first_bytes)
+
+            history = load_history_document(history_path, self.catalog)
+            self.assertEqual(
+                tuple(snapshot.market_date for snapshot in history.snapshots),
+                self.sessions,
             )
 
 

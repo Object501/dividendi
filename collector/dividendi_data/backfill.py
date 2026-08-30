@@ -9,7 +9,12 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from .archive import DEFAULT_HISTORY_PATH, HistoryDocument, publish_history_document
+from .archive import (
+    DEFAULT_HISTORY_PATH,
+    HistoryDocument,
+    load_history_document,
+    publish_history_document,
+)
 from .baostock_history import (
     BAOSTOCK_HISTORY_SOURCE,
     HistoricalSpotClose,
@@ -36,8 +41,14 @@ from .formulas import (
     implemented_dividend_per_share,
     trailing_dividend_yield,
 )
+from .history import retain_rolling_window
 from .instruments import InstrumentCatalog, load_instruments
-from .refresh import DEFAULT_LATEST_PATH, SHANGHAI, latest_document_json
+from .refresh import (
+    DEFAULT_LATEST_PATH,
+    SHANGHAI,
+    is_intraday_snapshot,
+    latest_document_json,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,3 +203,42 @@ def backfill_history(
     )
     changed = publish_history_document(document, catalog, history_path)
     return BackfillResult(changed, len(document.snapshots), start, end)
+
+
+def refresh_history(
+    latest_path: Path = DEFAULT_LATEST_PATH,
+    history_path: Path = DEFAULT_HISTORY_PATH,
+) -> bool:
+    """Refresh one official EOD snapshot and preserve the rolling history."""
+
+    catalog = load_instruments()
+    latest = load_latest_document(latest_path, catalog)
+    if is_intraday_snapshot(latest.fetched_at, latest.market_date):
+        raise ValueError("盘中行情不能触发日终历史更新")
+
+    market_date = latest.market_date
+    product_codes = tuple(product.code for product in catalog.futures_products)
+    daily = assemble_backfilled_history(
+        catalog,
+        market_date,
+        market_date,
+        fetch_cffex_closes(market_date, market_date, product_codes),
+        fetch_baostock_closes(
+            catalog,
+            market_date - timedelta(days=31),
+            market_date,
+        ),
+        fetch_catalog_dividends(catalog),
+    )
+    snapshot = daily.snapshots[0]
+    existing = (
+        load_history_document(history_path, catalog).snapshots if history_path.exists() else ()
+    )
+    snapshots = retain_rolling_window(
+        (
+            *(item for item in existing if item.market_date != market_date),
+            snapshot,
+        ),
+        lambda item: item.market_date,
+    )
+    return publish_history_document(HistoryDocument(1, snapshots), catalog, history_path)
