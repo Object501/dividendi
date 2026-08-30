@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { instruments } from "./config";
 import type { FuturesMetric } from "./data";
 import { HistorySection } from "./HistorySection";
+import { useTheme } from "./theme";
 import { type LatestDataState, useLatestData } from "./useLatestData";
 
 const MetricBarChart = lazy(() => import("./MetricBarChart"));
@@ -63,6 +64,7 @@ function PlaceholderValue() {
 }
 
 export function App() {
+	const { theme, toggleTheme } = useTheme();
 	const latestState = useLatestData();
 	const latest = latestState.data;
 	const rankedStocks = instruments.stocks
@@ -76,14 +78,30 @@ export function App() {
 	return (
 		<div className="app-shell">
 			<header className="hero">
-				<div className="hero__brand">
-					<span className="brand-mark" aria-hidden="true">
-						D
-					</span>
-					<div>
-						<p className="eyebrow">DIVIDENDI</p>
-						<h1>贴水与股息率</h1>
+				<div className="hero__top">
+					<div className="hero__brand">
+						<span className="brand-mark" aria-hidden="true">
+							D
+						</span>
+						<div>
+							<p className="eyebrow">DIVIDENDI</p>
+							<h1>贴水与股息率</h1>
+						</div>
 					</div>
+					<button
+						aria-label={`切换到${theme === "dark" ? "浅色" : "暗色"}模式`}
+						aria-pressed={theme === "dark"}
+						className="theme-toggle"
+						onClick={toggleTheme}
+						type="button"
+					>
+						<span aria-hidden="true" className="theme-toggle__icon">
+							{theme === "dark" ? "☼" : "◐"}
+						</span>
+						<span className="theme-toggle__label">
+							{theme === "dark" ? "浅色" : "暗色"}
+						</span>
+					</button>
 				</div>
 				<p className="hero__summary">
 					用一致、可复核的口径，查看股指期货日化贴水与过去 365

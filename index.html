@@ -3,7 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#173c35" />
+    <meta name="theme-color" content="#0d1412" />
+    <script>
+      try {
+        const theme = localStorage.getItem("dividendi-theme") === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "dark" ? "#0d1412" : "#173c35";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
     <meta
       name="description"
       content="查看股指期货日化贴水与自选 A 股过去 365 天已实施分红收益率。"

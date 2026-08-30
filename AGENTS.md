@@ -51,6 +51,8 @@ not investment advice.
 
 - Design at 360/390 px first; no horizontal page scroll, hover-only content,
   chart-only facts, or targets below 44 px. Support safe areas and reduced motion.
+- Default to dark mode, offer a persistent light-mode toggle, and keep chart
+  colors synchronized with the selected theme.
 - Show market/fetch time and Chinese summaries before charts. Keep explicit
   loading, error, empty, and last-good states.
 
@@ -70,6 +72,8 @@ not investment advice.
   `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive
   empty/error states, and 360/390 px browser QA.
+- [x] Default-dark theme with a persistent light toggle and matching ECharts
+  palettes, verified at 360/390 px without horizontal overflow.
 - [x] Backfilled 242 trading-session closes for the rolling window and added
   on-demand selectable trend charts with 360/390 px browser QA.
 - [x] Store production JSON in a one-commit orphan `data` branch. Weekend,
