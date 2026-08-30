@@ -50,7 +50,7 @@ export function useLatestData(): LatestDataState {
 		lastAttempt.current = now;
 
 		try {
-			const response = await fetch(latestDataUrl, { cache: "no-cache" });
+			const response = await fetch(latestDataUrl, { cache: "no-store" });
 			if (!response.ok) {
 				throw new Error(`行情请求失败：${response.status}`);
 			}
