@@ -140,7 +140,8 @@ not investment advice.
   vulnerability alerts and security updates are enabled, and read-only PR checks
   run the full Nix validation without deploying Pages.
 - [x] Limited GitHub merges to squash/rebase, validated every PR title with the
-  repository gitlint rules, and normalized Dependabot title punctuation.
+  repository gitlint rules, normalized Dependabot titles without a PR suffix,
+  and validated their final squash titles with the current PR number.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data
@@ -157,6 +158,8 @@ after real-device use.
 - Test parsers with fixtures, not live calls. Add regression tests for defects.
 - Keep commits focused; use `type: lowercase summary.` (72 characters max).
 - GitHub PRs must pass the same gitlint title rule. Squash Dependabot PRs so the
-  normalized PR title becomes the commit; rebase only conforming commit series.
+  normalized PR title becomes the commit. Keep that PR title free of `(#N)`, but
+  validate the synthesized squash title including the current PR number and its
+  72-character limit. Rebase only conforming commit series.
 - Run narrow and repository-wide checks. Update this progress section after each
   material stage.

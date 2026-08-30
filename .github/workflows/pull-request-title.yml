@@ -31,13 +31,22 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           title=$PR_TITLE
-          if [[ "$PR_AUTHOR" == "dependabot[bot]" && "$title" != *. ]]; then
-            title="$title."
-            gh api --method PATCH \
-              "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
-              -f title="$title"
+          validation_title=$title
+          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]]; then
+            while [[ "$title" =~ [[:space:]]+\(#[0-9]+\)$ ]]; do
+              title=${title%"${BASH_REMATCH[0]}"}
+            done
+            if [[ "$title" != *. ]]; then
+              title="$title."
+            fi
+            if [[ "$title" != "$PR_TITLE" ]]; then
+              gh api --method PATCH \
+                "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
+                -f title="$title"
+            fi
+            validation_title="$title (#$PR_NUMBER)"
           fi
-          printf '%s\n' "$title" > "$RUNNER_TEMP/pr-title.txt"
+          printf '%s\n' "$validation_title" > "$RUNNER_TEMP/pr-title.txt"
       - name: Checkout trusted base
         uses: actions/checkout@v6
       - name: Install Nix

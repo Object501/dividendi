@@ -5,4 +5,4 @@ ignore=merge-commit,B6,T3
 line-length=72
 
 [title-match-regex]
-regex=^(chore|doc|fix|feat|infra|refac|revert): .+\.$
+regex=^(chore|doc|fix|feat|infra|refac|revert): .+\.( \(#[1-9][0-9]*\))?$

@@ -156,8 +156,9 @@ flake 输入；npm/pnpm 更新改变锁文件后，合并前还必须清空
 
 仓库只允许 squash merge 和 rebase merge，不允许额外的 merge commit。所有 PR 标题都复用
 仓库的 gitlint 提交格式校验；Dependabot 标题缺少末尾句点时会由只处理可信基础分支的工作流
-自动补齐。squash merge 的最终标题固定取 PR 标题且正文留空，因此 Dependabot PR 应使用
-squash；只有分支中每条提交本身都符合格式时才使用 rebase。
+自动补齐，并删除 PR 标题中已有的 `(#N)` 后缀。校验时会临时加上当前 PR 号，以确保
+GitHub 生成的最终 squash 提交仍符合格式且不超过 72 个字符。squash merge 的正文
+留空，因此 Dependabot PR 应使用 squash；只有分支中每条提交本身都符合格式时才使用 rebase。
 
 ```sh
 nix develop
