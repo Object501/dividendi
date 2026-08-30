@@ -1,0 +1,185 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/Object501/dividendi/main/schema/public-data-v1.schema.json",
+	"title": "dividendi 公开数据 v1",
+	"description": "latest.json 与 history.json 的结构契约；跨字段金融计算由生产者和消费者另行校验。",
+	"oneOf": [
+		{
+			"$ref": "#/$defs/latestDocument"
+		},
+		{
+			"$ref": "#/$defs/historyDocument"
+		}
+	],
+	"$defs": {
+		"decimalString": {
+			"type": "string",
+			"pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+		},
+		"nonEmptyString": {
+			"type": "string",
+			"minLength": 1
+		},
+		"futuresMetric": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"productCode",
+				"contractCode",
+				"expiryDate",
+				"indexLevel",
+				"futuresPrice",
+				"discountPoints",
+				"remainingTradingDays",
+				"dailyDiscountPoints",
+				"source"
+			],
+			"properties": {
+				"productCode": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"contractCode": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"expiryDate": {
+					"type": "string",
+					"format": "date"
+				},
+				"indexLevel": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"futuresPrice": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"discountPoints": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"remainingTradingDays": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"dailyDiscountPoints": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"source": {
+					"$ref": "#/$defs/nonEmptyString"
+				}
+			}
+		},
+		"stockMetric": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"market",
+				"code",
+				"latestPrice",
+				"implementedDividendPerShare",
+				"dividendYield",
+				"priceSource",
+				"dividendSource"
+			],
+			"dependentRequired": {
+				"completedFiscalYear": [
+					"completedFiscalYearDividendPerShare",
+					"completedFiscalYearDividendYield"
+				],
+				"completedFiscalYearDividendPerShare": [
+					"completedFiscalYear",
+					"completedFiscalYearDividendYield"
+				],
+				"completedFiscalYearDividendYield": [
+					"completedFiscalYear",
+					"completedFiscalYearDividendPerShare"
+				]
+			},
+			"properties": {
+				"market": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"code": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"latestPrice": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"implementedDividendPerShare": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"dividendYield": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"priceSource": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"dividendSource": {
+					"$ref": "#/$defs/nonEmptyString"
+				},
+				"completedFiscalYear": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"completedFiscalYearDividendPerShare": {
+					"$ref": "#/$defs/decimalString"
+				},
+				"completedFiscalYearDividendYield": {
+					"$ref": "#/$defs/decimalString"
+				}
+			}
+		},
+		"latestDocument": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"schemaVersion",
+				"marketDate",
+				"fetchedAt",
+				"futures",
+				"stocks"
+			],
+			"properties": {
+				"schemaVersion": {
+					"const": 1
+				},
+				"marketDate": {
+					"type": "string",
+					"format": "date"
+				},
+				"fetchedAt": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"futures": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"$ref": "#/$defs/futuresMetric"
+					}
+				},
+				"stocks": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"$ref": "#/$defs/stockMetric"
+					}
+				}
+			}
+		},
+		"historyDocument": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["schemaVersion", "snapshots"],
+			"properties": {
+				"schemaVersion": {
+					"const": 1
+				},
+				"snapshots": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"$ref": "#/$defs/latestDocument"
+					}
+				}
+			}
+		}
+	}
+}

@@ -48,6 +48,20 @@ class LatestDocumentTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "期货行情中存在重复合约"):
             parse_latest_document(document, self.catalog)
 
+    def test_rejects_fields_outside_the_public_schema(self) -> None:
+        document = deepcopy(self.raw_document)
+        document["unexpected"] = True
+
+        with self.assertRaisesRegex(ValueError, "public-data-v1 JSON Schema"):
+            parse_latest_document(document, self.catalog)
+
+    def test_rejects_financial_numbers_that_are_not_strings(self) -> None:
+        document = deepcopy(self.raw_document)
+        document["stocks"][0]["latestPrice"] = 8
+
+        with self.assertRaisesRegex(ValueError, "public-data-v1 JSON Schema"):
+            parse_latest_document(document, self.catalog)
+
 
 if __name__ == "__main__":
     unittest.main()

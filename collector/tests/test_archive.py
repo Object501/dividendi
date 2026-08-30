@@ -46,6 +46,10 @@ class HistoryDocumentTest(unittest.TestCase):
         document = parse_history_document(history, self.catalog)
         self.assertEqual(len(document.snapshots), 2)
 
+    def test_rejects_empty_history_from_the_public_schema(self) -> None:
+        with self.assertRaisesRegex(ValueError, "public-data-v1 JSON Schema"):
+            parse_history_document({"schemaVersion": 1, "snapshots": []}, self.catalog)
+
     def test_replaces_same_day_and_preserves_earlier_snapshot(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

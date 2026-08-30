@@ -30,9 +30,10 @@ backfill:
 # Validate both generated JSON documents before publishing.
 validate:
     python3 -m collector validate-data
+    DIVIDENDI_CONTRACT_DATA_DIR="${DIVIDENDI_DATA_DIR:-.data}" pnpm validate:data-contract
 
 # Replace the remote data branch using the canonical commit-message generator.
-publish-data:
+publish-data: validate
     scripts/publish-data-branch "${DIVIDENDI_DATA_DIR:-.data}" origin
 
 # Run unit tests.

@@ -88,6 +88,14 @@ ECharts；根目录只保留 Node.js 依赖声明、共享配置、Python 采集
 - `.data/history.json`：仅含交易日收盘快照；同日覆盖，并只保留最新交易日向前 365
   天，用户打开历史趋势时才下载；图表从同一快照读取指标与收盘价。
 
+两份文件当前共同使用 `schemaVersion: 1`，其结构契约集中定义在
+[`schema/public-data-v1.schema.json`](schema/public-data-v1.schema.json)。发布前依次验证
+JSON Schema、Python 的公式与标的完整性等语义约束，并让前端自己的 TypeScript 解析器读取
+即将发布的两份真实文件。`just publish-data` 强制依赖这套校验；任何一层失败都不会创建或
+推送新的 `data` 分支提交。因此数据兼容性不只依赖采集脚本恰好生成前端能够识别的格式。
+`v1` Schema 不做破坏性修改；将来升级时必须新增版本，先部署能同时读取新旧版本的前端，
+再让采集器开始写入新版本，避免 Pages 部署与定时数据任务并发造成短暂不兼容。
+
 `.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
 开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响
 本地调试。生产环境则通过 `.env.production` 直接读取 GitHub 上独立的单提交 `data` 分支，
@@ -101,9 +109,10 @@ GitHub Actions 在工作日交易时段约每小时只刷新 `latest.json`，并
 或部署网站；只有 `main` 变化时才运行 GitHub Pages 构建和部署。因此定时工作流的触发次数
 不变，但真实数据变化也只运行一个更新任务，不再追加 Pages 的构建和部署任务。
 
-CI 和本地都通过 `just publish-data` 进入同一个 `scripts/publish-data-branch` 发布器。发布器
-逐字节比较远端数据，并统一调用 `scripts/data-commit-message` 生成提交文案。两份 JSON 都变化
-时会如实列出两行，完全没有变化时直接退出，不创建提交或推送。
+CI 和本地都通过 `just publish-data` 先执行相同的数据契约校验，再进入同一个
+`scripts/publish-data-branch` 发布器。发布器逐字节比较远端数据，并统一调用
+`scripts/data-commit-message` 生成提交文案。两份 JSON 都变化时会如实列出两行，完全没有
+变化时直接退出，不创建提交或推送。
 
 `data` 分支提交使用北京时间，标题和正文明确记录实际变化的文件，例如：
 

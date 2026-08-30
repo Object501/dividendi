@@ -27,6 +27,11 @@ not investment advice.
   dividends, and never look ahead.
 - Public financial decimals are JSON strings and are recomputed during Python
   and TypeScript validation. Publish complete, common-date data only.
+- `schema/public-data-v1.schema.json` is the sole structural contract for both
+  public JSON files. Before every publish, validate the exact candidate bytes
+  against it, Python semantics, and the production TypeScript parsers.
+  Never change a published schema incompatibly: deploy a reader supporting both
+  versions before switching the collector to a new schema version.
 - `latest.json` is atomically replaced only when financial values change.
   `history.json` replaces the same market date and retains exactly
   `(newest - 365 days, newest]` of trading-session closes; never archive an
@@ -94,6 +99,8 @@ not investment advice.
 - [x] Shared instrument catalog, formulas, CFFEX sessions, and 365-day retention.
 - [x] Fixture-tested Sina and CNInfo adapters; live-smoked the configured catalog.
 - [x] Validated/atomic latest publisher and rolling EOD history publisher.
+- [x] Versioned the public JSON structure and made local/CI publication require
+  JSON Schema, Python semantic, and production TypeScript parser validation.
 - [x] Keep generated JSON out of `main` while preserving local debugging through
   `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive

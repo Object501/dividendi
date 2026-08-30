@@ -73,9 +73,7 @@ jobs:
       - name: Refresh official history
         if: steps.mode.outputs.value == 'history' || steps.mode.outputs.value == 'all'
         run: nix develop --command just history
-      - name: Validate complete data set
-        run: nix develop --command just validate
-      - name: Publish changed data
+      - name: Validate and publish changed data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

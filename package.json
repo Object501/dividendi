@@ -9,7 +9,8 @@
 		"dev": "vite --config frontend/vite.config.ts",
 		"preview": "vite preview --config frontend/vite.config.ts",
 		"test": "vitest run --config frontend/vite.config.ts",
-		"typecheck": "tsc -b frontend/tsconfig.json"
+		"typecheck": "tsc -b frontend/tsconfig.json",
+		"validate:data-contract": "vitest run --config frontend/vite.config.ts src/publishedData.test.ts"
 	},
 	"dependencies": {
 		"echarts": "6.1.0",

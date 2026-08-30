@@ -21,6 +21,7 @@ from .refresh import (
     is_intraday_snapshot,
     latest_document_json,
 )
+from .schema import validate_history_schema
 
 DEFAULT_HISTORY_PATH = DEFAULT_DATA_DIR / "history.json"
 
@@ -34,6 +35,7 @@ class HistoryDocument:
 def parse_history_document(value: object, catalog: InstrumentCatalog) -> HistoryDocument:
     """Validate chronological, unique snapshots inside the rolling window."""
 
+    validate_history_schema(value)
     if not isinstance(value, Mapping):
         raise ValueError("history 必须是对象")
     if value.get("schemaVersion") != 1:
@@ -42,7 +44,10 @@ def parse_history_document(value: object, catalog: InstrumentCatalog) -> History
     if not isinstance(raw_snapshots, list):
         raise ValueError("history.snapshots 必须是数组")
 
-    snapshots = tuple(parse_latest_document(snapshot, catalog) for snapshot in raw_snapshots)
+    snapshots = tuple(
+        parse_latest_document(snapshot, catalog, validate_schema=False)
+        for snapshot in raw_snapshots
+    )
     dates = tuple(snapshot.market_date for snapshot in snapshots)
     if dates != tuple(sorted(dates)):
         raise ValueError("历史快照必须按交易日升序排列")

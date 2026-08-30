@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .formulas import daily_discount_points, discount_points, trailing_dividend_yield
 from .instruments import InstrumentCatalog
+from .schema import validate_latest_schema
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,9 +195,16 @@ def _stock_metric(value: object, path: str) -> StockMetric:
     return metric
 
 
-def parse_latest_document(value: object, catalog: InstrumentCatalog) -> LatestDocument:
+def parse_latest_document(
+    value: object,
+    catalog: InstrumentCatalog,
+    *,
+    validate_schema: bool = True,
+) -> LatestDocument:
     """Validate a decoded latest-data document against the instrument catalog."""
 
+    if validate_schema:
+        validate_latest_schema(value)
     record = _mapping(value, "latest")
     if record.get("schemaVersion") != 1:
         raise ValueError("不支持的行情数据版本")

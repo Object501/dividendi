@@ -105,6 +105,7 @@ final: prev:
   dividendi-python = final.python3.withPackages (python: [
     python.baostock
     python.cryptography
+    python.jsonschema
     python.pandas-market-calendars
   ]);
 }
