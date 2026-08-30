@@ -1,0 +1,142 @@
+name: Update market data
+
+on:
+  schedule:
+    - cron: "17 1-7 * * 1-5"
+    - cron: "37 10 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Data to refresh
+        type: choice
+        default: all
+        options:
+          - all
+          - latest
+          - history
+
+permissions: {}
+
+concurrency:
+  group: dividendi-pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Checkout published data
+        uses: actions/checkout@v6
+        with:
+          ref: data
+          path: .published-data
+          persist-credentials: false
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore published data
+        run: |
+          mkdir -p .data
+          cp .published-data/latest.json .data/latest.json
+          cp .published-data/history.json .data/history.json
+      - name: Select update mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" && "$SCHEDULE" == "17 1-7 * * 1-5" ]]; then
+            mode=latest
+          elif [[ "$EVENT_NAME" == "schedule" ]]; then
+            mode=all
+          else
+            mode=$REQUESTED_MODE
+          fi
+          echo "value=$mode" >> "$GITHUB_OUTPUT"
+      - name: Refresh latest snapshot
+        if: steps.mode.outputs.value == 'latest' || steps.mode.outputs.value == 'all'
+        run: nix develop --command python3 -m collector refresh-latest
+      - name: Refresh official history
+        if: steps.mode.outputs.value == 'history' || steps.mode.outputs.value == 'all'
+        run: nix develop --command python3 -m collector update-history
+      - name: Validate complete data set
+        run: nix develop --command python3 -m collector validate-data
+      - name: Compare with published data
+        id: compare
+        run: |
+          if cmp -s .data/latest.json .published-data/latest.json \
+            && cmp -s .data/history.json .published-data/history.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Replace data branch root commit
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/publish-data-branch .data origin
+
+  build:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+      - name: Checkout published data
+        uses: actions/checkout@v6
+        with:
+          ref: data
+          path: .published-data
+          persist-credentials: false
+      - name: Stage production data
+        run: |
+          mkdir -p public/data
+          cp .published-data/latest.json public/data/latest.json
+          cp .published-data/history.json public/data/history.json
+          git add -f public/data/latest.json public/data/history.json
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build static website
+        run: nix build .# --out-link result
+      - name: Copy build output
+        run: |
+          mkdir -p _site
+          cp -RL result/. _site/
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

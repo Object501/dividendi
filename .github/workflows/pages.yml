@@ -1,0 +1,65 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: dividendi-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+      - name: Checkout published data
+        uses: actions/checkout@v6
+        with:
+          ref: data
+          path: .published-data
+          persist-credentials: false
+      - name: Stage production data
+        run: |
+          mkdir -p public/data
+          cp .published-data/latest.json public/data/latest.json
+          cp .published-data/history.json public/data/history.json
+          git add -f public/data/latest.json public/data/history.json
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build static website
+        run: nix build .# --out-link result
+      - name: Copy build output
+        run: |
+          mkdir -p _site
+          cp -RL result/. _site/
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
