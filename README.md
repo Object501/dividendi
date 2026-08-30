@@ -137,7 +137,8 @@ Python 依赖来自固定的 Nixpkgs 和仓库 overlay，不使用 uv 或 pip �
 
 Dependabot 每周一检查 pnpm 和 GitHub Actions 更新；依赖中的 minor/patch 更新按运行时与
 开发用途分组，major 更新保持独立，Actions 更新合并为一组。安全告警和安全更新也已开启。
-Dependabot 不支持 Nix flake 输入；npm/pnpm 更新改变锁文件后，合并前还必须清空
+每个依赖 PR 都会以只读权限运行完整 Nix 检查，不会部署 Pages。Dependabot 不支持 Nix
+flake 输入；npm/pnpm 更新改变锁文件后，合并前还必须清空
 `nix/package.nix` 中的旧 `fetchPnpmDeps` 哈希、运行 `nix build`，再填入错误信息给出的
 新哈希。
 

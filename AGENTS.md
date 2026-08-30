@@ -121,7 +121,8 @@ not investment advice.
 - [x] Added a secret-free GitHub Actions Nix binary cache shared by Pages and
   scheduled data workflows.
 - [x] Enabled grouped weekly Dependabot updates for pnpm and GitHub Actions;
-  vulnerability alerts and security updates are enabled in repository settings.
+  vulnerability alerts and security updates are enabled, and read-only PR checks
+  run the full Nix validation without deploying Pages.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data
