@@ -24,13 +24,14 @@
 
 网页使用 React、TypeScript、Vite 和按需加载的 ECharts，构建结果是可直接托管到 GitHub
 Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资讯公开接口，先进行严格校验，再
-原子更新：
+原子更新本地开发数据：
 
-- `public/data/latest.json`：当前行情；数值没有变化时不重写文件；
-- `public/data/history.json`：日终快照；同日覆盖，并只保留最新交易日向前 365 天。
+- `.data/latest.json`：当前行情；数值没有变化时不重写文件；
+- `.data/history.json`：日终快照；同日覆盖，并只保留最新交易日向前 365 天。
 
-历史目前从 2026-08-28 的首份快照开始积累，尚未进行历史回填。自动更新和 Pages 部署流程
-也暂未启用。
+`.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
+开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响
+本地调试。生产数据将保存在独立的单提交 `data` 分支，构建时才检出到 `public/data`。
 
 ## 开发
 

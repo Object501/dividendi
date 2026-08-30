@@ -15,6 +15,8 @@
       pkgs.dividendi-python
     ];
 
-    inherit (pre-commit-check) shellHook;
+    shellHook = pre-commit-check.shellHook + ''
+      export DIVIDENDI_DATA_DIR="$PWD/.data"
+    '';
   };
 }

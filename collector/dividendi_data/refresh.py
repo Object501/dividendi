@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, time
@@ -29,7 +30,9 @@ from .formulas import (
 from .instruments import InstrumentCatalog, load_instruments
 from .sina import SINA_SOURCE, CurrentQuotes, fetch_current_quotes
 
-DEFAULT_LATEST_PATH = Path(__file__).resolve().parents[2] / "public" / "data" / "latest.json"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_DATA_DIR = Path(os.environ.get("DIVIDENDI_DATA_DIR", REPOSITORY_ROOT / ".data"))
+DEFAULT_LATEST_PATH = DEFAULT_DATA_DIR / "latest.json"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MARKET_CLOSE = time(15)
 

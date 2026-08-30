@@ -34,8 +34,10 @@ not investment advice.
   no runtime backend, accounts, database, browser Python, C++, WASM, or SSR.
 - Python collector with narrow provider adapters: Sina current quotes, CNInfo
   implemented cash dividends, CFFEX rules, and the SSE trading calendar.
-- `public/data/latest.json` and `public/data/history.json` ship with the site.
-  Preserve last-good files when fetching or validation fails.
+- `main` never tracks generated JSON. Local data lives in ignored `.data`, with
+  `DIVIDENDI_DATA_DIR` exported by the dev shell and Vite development URLs set in
+  `.env.development`. Production temporarily checks the `data` branch out at
+  `public/data` before building. Preserve last-good data on failure.
 - pnpm lockfile plus Nixpkgs `fetchPnpmDeps`; no node2nix. Python and development
   packages come from pinned Nixpkgs. Put missing packages in `nix/overlay.nix`;
   do not add uv/pip environments.
@@ -60,18 +62,18 @@ not investment advice.
 - [x] Shared instrument catalog, formulas, CFFEX sessions, and 365-day retention.
 - [x] Fixture-tested Sina and CNInfo adapters; live-smoked the configured catalog.
 - [x] Validated/atomic latest publisher and rolling EOD history publisher.
-- [x] Seed data for 2026-08-28.
+- [x] Keep generated JSON out of `main` while preserving local debugging through
+  `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive
   empty/error states, and 360/390 px browser QA.
-- [ ] Optional: backfill the rolling window and add selectable trend charts.
-- [ ] Add update/Pages workflows only when requested. Planned behavior: generate
-  proposed data, validate, and exit without commit/deploy when unchanged; for a
-  valid change, commit to `main` and deploy exactly once in the same workflow.
+- [ ] Backfill the rolling window and add selectable trend charts.
+- [ ] Store production JSON in a one-commit orphan `data` branch. Weekend,
+  holiday, and unchanged runs must make no commit or deployment. Changed data
+  replaces that commit with `--force-with-lease`, then deploys once.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
-Current stage: the local vertical slice is complete. A new session should choose
-between historical backfill/trends and CI/Pages deployment; CI is intentionally
-absent for now.
+Current stage: generated data has moved out of `main`; historical backfill and
+trend charts are in progress, followed by the `data` branch and CI/Pages.
 
 ## Working rules
 

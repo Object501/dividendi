@@ -15,9 +15,14 @@ from .documents import (
 )
 from .history import retain_rolling_window
 from .instruments import InstrumentCatalog, load_instruments
-from .refresh import DEFAULT_LATEST_PATH, is_intraday_snapshot, latest_document_json
+from .refresh import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_LATEST_PATH,
+    is_intraday_snapshot,
+    latest_document_json,
+)
 
-DEFAULT_HISTORY_PATH = Path(__file__).resolve().parents[2] / "public" / "data" / "history.json"
+DEFAULT_HISTORY_PATH = DEFAULT_DATA_DIR / "history.json"
 
 
 @dataclass(frozen=True, slots=True)
