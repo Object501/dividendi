@@ -78,6 +78,33 @@
 			"dividendYield": "0.05",
 			"priceSource": "fixture",
 			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "600188",
+			"latestPrice": "20",
+			"implementedDividendPerShare": "1",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "600900",
+			"latestPrice": "20",
+			"implementedDividendPerShare": "1",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "601899",
+			"latestPrice": "20",
+			"implementedDividendPerShare": "1",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
 		}
 	]
 }
