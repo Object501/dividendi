@@ -185,9 +185,12 @@ def publish_latest_document(
     raw_document = latest_document_json(document)
     parse_latest_document(raw_document, catalog)
     if path.exists():
-        with path.open(encoding="utf-8") as source:
-            previous = parse_latest_document(json.load(source), catalog)
-        if replace(previous, fetched_at=document.fetched_at) == document:
+        try:
+            with path.open(encoding="utf-8") as source:
+                previous = parse_latest_document(json.load(source), catalog)
+        except ValueError:
+            previous = None
+        if previous is not None and replace(previous, fetched_at=document.fetched_at) == document:
             return False
 
     return atomic_write_json(raw_document, path)

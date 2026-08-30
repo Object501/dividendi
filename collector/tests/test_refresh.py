@@ -97,6 +97,20 @@ class LatestRefreshTest(unittest.TestCase):
             self.assertFalse(publish_latest_document(later, self.catalog, output))
             self.assertEqual(output.read_bytes(), original)
 
+    def test_replaces_data_that_no_longer_matches_the_catalog(self) -> None:
+        document = assemble_latest_document(
+            self.catalog,
+            self.quotes,
+            self.dividends,
+            intraday=False,
+        )
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "latest.json"
+            output.write_text('{"schemaVersion": 1}', encoding="utf-8")
+
+            self.assertTrue(publish_latest_document(document, self.catalog, output))
+            self.assertEqual(load_latest_document(output, self.catalog), document)
+
     def test_detects_intraday_snapshot_before_market_close(self) -> None:
         market_date = date(2026, 8, 28)
         self.assertTrue(
