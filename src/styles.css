@@ -523,11 +523,47 @@ dd {
   border-radius: 1.25rem;
 }
 
-.method-note > p:last-child {
-  margin-top: 0.85rem;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.7;
+.method-note__intro,
+.method-note__footnote,
+.method-note__grid article > p {
+	color: var(--muted);
+	line-height: 1.65;
+}
+
+.method-note__intro {
+	margin-top: 0.85rem;
+	font-size: 0.84rem;
+}
+
+.method-note__grid {
+	display: grid;
+	gap: 0.7rem;
+	margin-top: 1rem;
+}
+
+.method-note__grid article {
+	padding: 0.9rem;
+	background: var(--surface-subtle);
+	border-radius: 0.85rem;
+}
+
+.method-note__grid h3 {
+	font-size: 0.9rem;
+}
+
+.method-note__grid article > p {
+	margin-top: 0.5rem;
+	font-size: 0.76rem;
+}
+
+.method-note__grid .method-note__formula {
+	color: var(--ink);
+	font-weight: 720;
+}
+
+.method-note__footnote {
+	margin-top: 1rem;
+	font-size: 0.78rem;
 }
 
 .history-gate,
@@ -795,6 +831,10 @@ dd {
 	.dividend-basis {
 		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
 		align-items: center;
+	}
+
+	.method-note__grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
   .bottom-nav {
