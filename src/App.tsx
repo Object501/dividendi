@@ -337,12 +337,13 @@ function ContractRow({ contract }: { readonly contract: FuturesMetric }) {
 		<div className="contract-row">
 			<div>
 				<strong>{contract.contractCode}</strong>
-				<span>
-					{contractDate(contract.expiryDate)}到期 · 最新价{" "}
-					{numberFormat.format(contract.futuresPrice)}
-				</span>
+				<span>{contractDate(contract.expiryDate)}到期</span>
 			</div>
 			<dl>
+				<div>
+					<dt>最新价</dt>
+					<dd>{numberFormat.format(contract.futuresPrice)}</dd>
+				</div>
 				<div>
 					<dt>贴水</dt>
 					<dd className={valueTone(contract.discountPoints)}>

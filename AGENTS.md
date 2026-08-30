@@ -73,7 +73,8 @@ not investment advice.
 - [x] Keep generated JSON out of `main` while preserving local debugging through
   `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive
-  empty/error states, and 360/390 px browser QA.
+  empty/error states, per-contract futures prices, and 320/360/390 px browser
+  QA.
 - [x] Default-dark theme with a persistent light toggle and matching ECharts
   palettes, verified at 360/390 px without horizontal overflow.
 - [x] Historical dual-axis charts and summaries pair dividend yield or daily
