@@ -1,4 +1,4 @@
-name: Deploy website
+name: CI / Pages
 
 on:
   push:
@@ -27,16 +27,18 @@ jobs:
           ref: data
           path: .published-data
           persist-credentials: false
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check source
+        run: nix flake check --print-build-logs
       - name: Stage production data
         run: |
           mkdir -p public/data
           cp .published-data/latest.json public/data/latest.json
           cp .published-data/history.json public/data/history.json
           git add -f public/data/latest.json public/data/history.json
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build static website
         run: nix build .# --out-link result
       - name: Copy build output
