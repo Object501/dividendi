@@ -40,4 +40,13 @@
       ruff-format.enable = true;
     };
   };
+
+  python-tests = pkgs.runCommand "dividendi-python-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+    cp -r ${src} source
+    chmod -R u+w source
+    cd source
+
+    python3 -m unittest discover -s collector/tests
+    touch "$out"
+  '';
 }

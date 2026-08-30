@@ -9,7 +9,7 @@ setup:
 check:
     pre-commit run --all-files
     pnpm typecheck
-    pnpm test
+    just test
 
 # Build the static website locally.
 build:
@@ -18,6 +18,7 @@ build:
 # Run unit tests.
 test:
     pnpm test
+    python3 -m unittest discover -s collector/tests
 
 # Run the Nix checks used by CI.
 ci:
