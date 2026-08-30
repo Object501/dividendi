@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import latestFixture from "../collector/tests/fixtures/latest.json";
 import { instruments } from "./config";
-import { parseLatestData } from "./data";
+import { parseHistoryData, parseLatestData } from "./data";
 
 describe("parseLatestData", () => {
 	it("accepts the collector fixture", () => {
@@ -48,5 +48,52 @@ describe("parseLatestData", () => {
 				instruments,
 			),
 		).toThrow("股票行情必须完整覆盖配置");
+	});
+});
+
+describe("parseHistoryData", () => {
+	it("accepts strictly ordered snapshots inside the rolling window", () => {
+		const history = parseHistoryData(
+			{
+				schemaVersion: 1,
+				snapshots: [
+					{
+						...latestFixture,
+						marketDate: "2026-08-27",
+					},
+					latestFixture,
+				],
+			},
+			instruments,
+		);
+
+		expect(history.snapshots).toHaveLength(2);
+	});
+
+	it("rejects duplicate or descending dates", () => {
+		expect(() =>
+			parseHistoryData(
+				{
+					schemaVersion: 1,
+					snapshots: [latestFixture, latestFixture],
+				},
+				instruments,
+			),
+		).toThrow("严格升序");
+	});
+
+	it("rejects snapshots on the excluded cutoff date", () => {
+		expect(() =>
+			parseHistoryData(
+				{
+					schemaVersion: 1,
+					snapshots: [
+						{ ...latestFixture, marketDate: "2025-08-28" },
+						latestFixture,
+					],
+				},
+				instruments,
+			),
+		).toThrow("超出 365 天");
 	});
 });

@@ -30,6 +30,11 @@ export interface LatestData {
 	readonly stocks: readonly StockMetric[];
 }
 
+export interface HistoryData {
+	readonly schemaVersion: 1;
+	readonly snapshots: readonly LatestData[];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -237,4 +242,44 @@ export function parseLatestData(
 	}
 
 	return { schemaVersion: 1, marketDate, fetchedAt, futures, stocks };
+}
+
+export function parseHistoryData(
+	value: unknown,
+	instruments: InstrumentConfig,
+): HistoryData {
+	if (!isRecord(value)) {
+		throw new Error("历史数据必须是对象");
+	}
+	if (value.schemaVersion !== 1) {
+		throw new Error("不支持的历史数据版本");
+	}
+	if (!Array.isArray(value.snapshots) || value.snapshots.length === 0) {
+		throw new Error("history.snapshots 必须是非空数组");
+	}
+	const snapshots = value.snapshots.map((snapshot) =>
+		parseLatestData(snapshot, instruments),
+	);
+	const dates = snapshots.map((snapshot) => snapshot.marketDate);
+	if (
+		dates.some((marketDate, index) => {
+			const previousDate = dates[index - 1];
+			return previousDate !== undefined && marketDate <= previousDate;
+		})
+	) {
+		throw new Error("历史快照必须按交易日严格升序排列");
+	}
+	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+	const newestDate = dates.at(-1);
+	if (newestDate === undefined) {
+		throw new Error("history.snapshots 必须是非空数组");
+	}
+	const newest = Date.parse(`${newestDate}T00:00:00Z`);
+	const cutoff = newest - 365 * millisecondsPerDay;
+	if (
+		dates.some((marketDate) => Date.parse(`${marketDate}T00:00:00Z`) <= cutoff)
+	) {
+		throw new Error("历史快照超出 365 天滚动窗口");
+	}
+	return { schemaVersion: 1, snapshots };
 }
