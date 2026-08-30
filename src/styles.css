@@ -147,7 +147,12 @@ dd {
   height: 0.5rem;
   background: var(--lime);
   border-radius: 50%;
-  box-shadow: 0 0 0 0.22rem rgb(202 221 114 / 15%);
+	box-shadow: 0 0 0 0.22rem rgb(202 221 114 / 15%);
+}
+
+.status-line--error .status-dot {
+	background: #e2ad78;
+	box-shadow: 0 0 0 0.22rem rgb(226 173 120 / 15%);
 }
 
 .section {
@@ -261,7 +266,62 @@ dd {
   margin-top: 1rem;
   color: var(--muted);
   font-size: 0.78rem;
-  line-height: 1.55;
+	line-height: 1.55;
+}
+
+.value-positive {
+	color: #16725f;
+}
+
+.value-negative {
+	color: #a54d3d;
+}
+
+.contract-list {
+	margin-top: 1rem;
+	border-top: 1px solid var(--line);
+}
+
+.contract-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	min-height: 4rem;
+	padding: 0.7rem 0;
+}
+
+.contract-row + .contract-row {
+	border-top: 1px solid var(--line);
+}
+
+.contract-row > div,
+.contract-row dl > div {
+	display: flex;
+	flex-direction: column;
+}
+
+.contract-row strong {
+	font-size: 0.82rem;
+}
+
+.contract-row span,
+.contract-row dt {
+	margin-top: 0.18rem;
+	color: var(--muted);
+	font-size: 0.63rem;
+}
+
+.contract-row dl {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(3.5rem, 1fr));
+	gap: 0.6rem;
+	text-align: right;
+}
+
+.contract-row dd {
+	font-size: 0.86rem;
+	font-weight: 760;
 }
 
 .stock-list {
@@ -295,7 +355,11 @@ dd {
   flex-direction: column;
   align-items: flex-end;
   font-size: 1.25rem;
-  font-weight: 780;
+	font-weight: 780;
+}
+
+.stock-yield strong {
+	font-size: 1.05rem;
 }
 
 .stock-yield > span:last-child {
