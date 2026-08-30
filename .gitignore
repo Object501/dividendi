@@ -1,0 +1,20 @@
+# Tooling
+/.direnv
+/.pre-commit-config.yaml
+/.cache
+/.ruff_cache
+
+# Web
+/node_modules
+/dist
+/coverage
+
+# Python
+/.venv
+__pycache__
+*.pyc
+
+# Local configuration
+.env
+.env.*
+!.env.example
