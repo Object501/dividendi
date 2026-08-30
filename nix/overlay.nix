@@ -3,6 +3,27 @@ final: prev:
 {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (python-final: _python-prev: {
+      baostock = python-final.buildPythonPackage rec {
+        pname = "baostock";
+        version = "0.9.3";
+        pyproject = true;
+
+        src = final.fetchPypi {
+          inherit pname version;
+          hash = "sha256-FmmdgtBQN6jBM1d/zeuawNWn8x7cJDLE6IMATgqV4/c=";
+        };
+
+        build-system = [ python-final.setuptools ];
+        dependencies = [ python-final.pandas ];
+        pythonImportsCheck = [ "baostock" ];
+
+        meta = {
+          description = "Historical data client for China's stock market";
+          homepage = "https://baostock.com";
+          license = final.lib.licenses.bsd3;
+        };
+      };
+
       pyluach = python-final.buildPythonPackage rec {
         pname = "pyluach";
         version = "2.3.0";
@@ -82,6 +103,7 @@ final: prev:
   ];
 
   dividendi-python = final.python3.withPackages (python: [
+    python.baostock
     python.cryptography
     python.pandas-market-calendars
   ]);
