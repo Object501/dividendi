@@ -60,6 +60,9 @@ not investment advice.
 - pnpm lockfile plus Nixpkgs `fetchPnpmDeps`; no node2nix. Python and development
   packages come from pinned Nixpkgs. Put missing packages in `nix/overlay.nix`;
   do not add uv/pip environments.
+- GitHub workflows share the repository-scoped Magic Nix Cache. Keep GitHub
+  cache enabled and FlakeHub/diagnostics disabled; local builds use their own
+  Nix store.
 - Native systems: `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`.
 
 ## Mobile UX
@@ -112,6 +115,8 @@ not investment advice.
   `frontend/` while keeping every root Justfile recipe operational.
 - [x] Reduced dividend requests to once per market date and added bounded
   incremental EOD catch-up without changing the explicit backfill/publish split.
+- [x] Added a secret-free GitHub Actions Nix binary cache shared by Pages and
+  scheduled data workflows.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data

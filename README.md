@@ -129,6 +129,12 @@ just publish-data
 `x86_64-linux`。JavaScript 依赖由 pnpm 锁定，并通过 Nixpkgs 的 pnpm 构建钩子打包；
 Python 依赖来自固定的 Nixpkgs 和仓库 overlay，不使用 uv 或 pip 环境。
 
+两个 GitHub Actions 工作流都通过 Magic Nix Cache 复用 GitHub Actions 自带的缓存，
+不需要外部账户或密钥，并关闭 FlakeHub 与诊断数据上报。`cache.nixos.org` 已有的构建结果
+仍直接取自官方缓存，不重复上传。GitHub 默认会删除连续超过 7 天未访问的缓存，并为每个
+仓库免费保留最多 10 GB；这不是固定每 7 天清空一次。定时数据任务会持续访问有效缓存，
+本地开发则仍使用本机的 Nix store，不依赖 CI 缓存。
+
 ```sh
 nix develop
 just setup     # 安装锁定的前端依赖
