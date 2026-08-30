@@ -7,7 +7,7 @@
 
 标的清单不是写死在程序里，而是统一读取
 [`config/instruments.json`](config/instruments.json)。目前包含建设银行、工商银行、中国神华、
-中远海控和中国平安。
+中远海控、中国平安、五粮液和伊利股份。
 
 ## 计算口径
 
@@ -26,8 +26,10 @@
 Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资讯公开接口，先进行严格校验，再
 原子更新本地开发数据：
 
-- `.data/latest.json`：当前行情；数值没有变化时不重写文件；
-- `.data/history.json`：日终快照；同日覆盖，并只保留最新交易日向前 365 天。
+- `.data/latest.json`：当前行情；数值没有变化时不重写文件，浏览器以 `no-store`
+  下载且只保留在内存中；
+- `.data/history.json`：仅含交易日收盘快照；同日覆盖，并只保留最新交易日向前 365
+  天，用户打开历史趋势时才下载。
 
 `.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
 开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响

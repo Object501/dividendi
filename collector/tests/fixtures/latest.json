@@ -60,6 +60,24 @@
 			"dividendYield": "0.05",
 			"priceSource": "fixture",
 			"dividendSource": "fixture"
+		},
+		{
+			"market": "SZ",
+			"code": "000858",
+			"latestPrice": "100",
+			"implementedDividendPerShare": "5",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "600887",
+			"latestPrice": "20",
+			"implementedDividendPerShare": "1",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
 		}
 	]
 }
