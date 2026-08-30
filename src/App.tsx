@@ -1,6 +1,10 @@
+import { lazy, Suspense } from "react";
+
 import { instruments } from "./config";
 import type { FuturesMetric } from "./data";
 import { type LatestDataState, useLatestData } from "./useLatestData";
+
+const MetricBarChart = lazy(() => import("./MetricBarChart"));
 
 const numberFormat = new Intl.NumberFormat("zh-CN", {
 	minimumFractionDigits: 0,
@@ -60,6 +64,13 @@ function PlaceholderValue() {
 export function App() {
 	const latestState = useLatestData();
 	const latest = latestState.data;
+	const rankedStocks = instruments.stocks
+		.map((stock, index) => ({ metric: latest?.stocks[index], stock }))
+		.toSorted(
+			(left, right) =>
+				(right.metric?.dividendYield ?? -1) -
+				(left.metric?.dividendYield ?? -1),
+		);
 
 	return (
 		<div className="app-shell">
@@ -169,6 +180,20 @@ export function App() {
 											))}
 										</div>
 									)}
+									{contracts.length > 0 ? (
+										<ChartPanel title="各合约日化贴水">
+											<MetricBarChart
+												data={contracts.map((contract) => ({
+													label: contract.contractCode,
+													value: Number(
+														contract.dailyDiscountPoints.toFixed(2),
+													),
+												}))}
+												description={`${product.name}各在交易合约的日化贴水点数`}
+												unit="点"
+											/>
+										</ChartPanel>
+									) : null}
 								</article>
 							);
 						})}
@@ -191,8 +216,7 @@ export function App() {
 					</div>
 
 					<div className="stock-list">
-						{instruments.stocks.map((stock, index) => {
-							const metric = latest?.stocks[index];
+						{rankedStocks.map(({ metric, stock }, index) => {
 							return (
 								<article
 									className="stock-row"
@@ -224,6 +248,20 @@ export function App() {
 							);
 						})}
 					</div>
+					{latest ? (
+						<ChartPanel title="股息率横向比较">
+							<MetricBarChart
+								data={rankedStocks.map(({ metric, stock }) => ({
+									label: stock.name,
+									value: Number(
+										((metric?.dividendYield ?? 0) * 100).toFixed(2),
+									),
+								}))}
+								description="配置股票过去365天已实施现金分红的税前股息率比较"
+								unit="%"
+							/>
+						</ChartPanel>
+					) : null}
 				</section>
 
 				<aside className="method-note" aria-labelledby="method-title">
@@ -246,6 +284,25 @@ export function App() {
 					股息率
 				</a>
 			</nav>
+		</div>
+	);
+}
+
+function ChartPanel({
+	children,
+	title,
+}: {
+	readonly children: React.ReactNode;
+	readonly title: string;
+}) {
+	return (
+		<div className="chart-panel">
+			<p>{title}</p>
+			<Suspense
+				fallback={<div className="chart-placeholder">正在绘制图表</div>}
+			>
+				{children}
+			</Suspense>
 		</div>
 	);
 }
