@@ -81,5 +81,8 @@ final: prev:
     })
   ];
 
-  dividendi-python = final.python3.withPackages (python: [ python.pandas-market-calendars ]);
+  dividendi-python = final.python3.withPackages (python: [
+    python.cryptography
+    python.pandas-market-calendars
+  ]);
 }

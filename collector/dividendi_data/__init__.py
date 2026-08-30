@@ -8,6 +8,7 @@ from .calendar import (
     remaining_trading_days,
     trading_sessions,
 )
+from .cninfo import fetch_catalog_dividends, fetch_stock_dividends
 from .documents import (
     FuturesMetric,
     LatestDocument,
@@ -49,7 +50,9 @@ __all__ = [
     "cffex_expiry",
     "daily_discount_points",
     "discount_points",
+    "fetch_catalog_dividends",
     "fetch_current_quotes",
+    "fetch_stock_dividends",
     "implemented_dividend_per_share",
     "load_instruments",
     "load_latest_document",
