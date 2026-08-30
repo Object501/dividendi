@@ -1,0 +1,65 @@
+{
+	"schemaVersion": 1,
+	"marketDate": "2026-08-28",
+	"fetchedAt": "2026-08-28T07:05:00Z",
+	"futures": [
+		{
+			"productCode": "IM",
+			"contractCode": "IM2609",
+			"expiryDate": "2026-09-18",
+			"indexLevel": "6500",
+			"futuresPrice": "6464",
+			"discountPoints": "36",
+			"remainingTradingDays": 12,
+			"dailyDiscountPoints": "3",
+			"source": "fixture"
+		}
+	],
+	"stocks": [
+		{
+			"market": "SH",
+			"code": "601939",
+			"latestPrice": "8",
+			"implementedDividendPerShare": "0.4",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "601398",
+			"latestPrice": "7",
+			"implementedDividendPerShare": "0.35",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "601088",
+			"latestPrice": "40",
+			"implementedDividendPerShare": "2",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "601919",
+			"latestPrice": "15",
+			"implementedDividendPerShare": "0.75",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		},
+		{
+			"market": "SH",
+			"code": "601318",
+			"latestPrice": "60",
+			"implementedDividendPerShare": "3",
+			"dividendYield": "0.05",
+			"priceSource": "fixture",
+			"dividendSource": "fixture"
+		}
+	]
+}
