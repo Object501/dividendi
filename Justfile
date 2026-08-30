@@ -19,11 +19,11 @@ build:
 data:
     python3 -m collector refresh-latest
 
-# Fetch official closes and update the rolling 365-day history.
+# Fetch official closes and incrementally update the rolling 365-day history.
 history:
     python3 -m collector update-history
 
-# Rebuild the complete trailing 365-day EOD history with polite random delays.
+# Rebuild the complete trailing 365-calendar-day EOD history locally.
 backfill:
     python3 -m collector backfill-history
 

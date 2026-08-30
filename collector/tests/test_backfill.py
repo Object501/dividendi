@@ -2,18 +2,28 @@ from __future__ import annotations
 
 import json
 import unittest
-from datetime import date
+from dataclasses import replace
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from collector.dividendi_data import CashDividend, load_instruments
-from collector.dividendi_data.archive import load_history_document, publish_history_document
-from collector.dividendi_data.backfill import assemble_backfilled_history, refresh_history
+from collector.dividendi_data import CashDividend, load_instruments, load_latest_document
+from collector.dividendi_data.archive import (
+    HistoryDocument,
+    load_history_document,
+    publish_history_document,
+)
+from collector.dividendi_data.backfill import (
+    MAX_INCREMENTAL_SESSIONS,
+    assemble_backfilled_history,
+    refresh_history,
+)
 from collector.dividendi_data.baostock_history import HistoricalSpotClose
 from collector.dividendi_data.calendar import active_contract_codes
 from collector.dividendi_data.cffex_history import HistoricalFuturesClose
+from collector.dividendi_data.refresh import SHANGHAI
 
 
 class HistoricalBackfillTest(unittest.TestCase):
@@ -124,7 +134,7 @@ class HistoricalBackfillTest(unittest.TestCase):
                 ),
                 patch(
                     "collector.dividendi_data.backfill.fetch_catalog_dividends",
-                    return_value=self.dividends,
+                    side_effect=AssertionError("单日更新不应重新抓取分红"),
                 ),
             ):
                 self.assertTrue(refresh_history(latest_path, history_path))
@@ -137,6 +147,120 @@ class HistoricalBackfillTest(unittest.TestCase):
                 tuple(snapshot.market_date for snapshot in history.snapshots),
                 self.sessions,
             )
+
+    def test_catches_up_missing_trading_sessions(self) -> None:
+        sessions = (date(2026, 8, 26), *self.sessions)
+        futures = tuple(
+            HistoricalFuturesClose(product.code, contract, market_date, Decimal("6400"))
+            for market_date in sessions
+            for product in self.catalog.futures_products
+            for contract in active_contract_codes(product.code, market_date)
+        )
+        instruments = {
+            (instrument.market, instrument.code): instrument
+            for instrument in (
+                *(product.underlying for product in self.catalog.futures_products),
+                *self.catalog.stocks,
+            )
+        }
+        spots = {
+            key: tuple(
+                HistoricalSpotClose(
+                    instrument.market,
+                    instrument.code,
+                    market_date,
+                    Decimal("6500") if instrument.code == "000852" else Decimal("10"),
+                )
+                for market_date in sessions
+            )
+            for key, instrument in instruments.items()
+        }
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            latest_path = root / "latest.json"
+            history_path = root / "history.json"
+            fixture = Path(__file__).parent / "fixtures" / "latest.json"
+            latest = json.loads(fixture.read_text(encoding="utf-8"))
+            latest["fetchedAt"] = "2026-08-30T10:00:00Z"
+            latest_path.write_text(json.dumps(latest), encoding="utf-8")
+            initial = assemble_backfilled_history(
+                self.catalog,
+                sessions[0],
+                sessions[0],
+                futures,
+                spots,
+                self.dividends,
+            )
+            publish_history_document(initial, self.catalog, history_path)
+
+            with (
+                patch(
+                    "collector.dividendi_data.backfill.fetch_cffex_closes",
+                    return_value=futures,
+                ) as fetch_futures,
+                patch(
+                    "collector.dividendi_data.backfill.fetch_baostock_closes",
+                    return_value=spots,
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_catalog_dividends",
+                    return_value=self.dividends,
+                ) as fetch_dividends,
+            ):
+                self.assertTrue(refresh_history(latest_path, history_path))
+
+            fetch_futures.assert_called_once_with(
+                self.sessions[0],
+                self.sessions[-1],
+                tuple(product.code for product in self.catalog.futures_products),
+            )
+            fetch_dividends.assert_called_once_with(self.catalog)
+            history = load_history_document(history_path, self.catalog)
+            self.assertEqual(
+                tuple(snapshot.market_date for snapshot in history.snapshots),
+                sessions,
+            )
+
+    def test_rejects_incremental_gap_above_limit(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            latest_path = root / "latest.json"
+            history_path = root / "history.json"
+            fixture = Path(__file__).parent / "fixtures" / "latest.json"
+            latest = json.loads(fixture.read_text(encoding="utf-8"))
+            latest["fetchedAt"] = "2026-08-28T08:00:00Z"
+            latest_path.write_text(json.dumps(latest), encoding="utf-8")
+            latest_document = load_latest_document(latest_path, self.catalog)
+            old_snapshot = replace(
+                latest_document,
+                market_date=date(2026, 7, 1),
+                fetched_at=datetime(2026, 7, 1, 15, tzinfo=SHANGHAI),
+            )
+            publish_history_document(
+                HistoryDocument(1, (old_snapshot,)),
+                self.catalog,
+                history_path,
+            )
+
+            with (
+                patch(
+                    "collector.dividendi_data.backfill.fetch_cffex_closes",
+                    side_effect=AssertionError("超限时不应请求中金所"),
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_baostock_closes",
+                    side_effect=AssertionError("超限时不应请求 BaoStock"),
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_catalog_dividends",
+                    side_effect=AssertionError("超限时不应请求巨潮"),
+                ),
+                self.assertRaisesRegex(
+                    ValueError,
+                    f"超过自动补齐上限 {MAX_INCREMENTAL_SESSIONS}",
+                ),
+            ):
+                refresh_history(latest_path, history_path)
 
 
 if __name__ == "__main__":

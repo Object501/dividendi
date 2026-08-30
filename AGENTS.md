@@ -37,6 +37,10 @@ not investment advice.
 - Scheduled hourly runs refresh only `latest.json`; the daily EOD run refreshes
   only `history.json`. Data-branch commit titles use a Shanghai timestamp and
   their bodies list the JSON files whose bytes actually changed.
+- Fetch CNInfo dividends at most once per market date. Later quote refreshes for
+  that date reuse the validated dividend basis and recompute yields from the new
+  prices. EOD refreshes may catch up at most 10 trailing missing sessions; larger
+  gaps require an explicit, locally reviewed `just backfill`.
 
 ## Architecture
 
@@ -106,6 +110,8 @@ not investment advice.
   directly and local development continues to use ignored `.data` files.
 - [x] Consolidated all site source and frontend build configuration under
   `frontend/` while keeping every root Justfile recipe operational.
+- [x] Reduced dividend requests to once per market date and added bounded
+  incremental EOD catch-up without changing the explicit backfill/publish split.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data

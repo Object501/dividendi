@@ -51,6 +51,8 @@ from .refresh import (
     latest_document_json,
 )
 
+MAX_INCREMENTAL_SESSIONS = 10
+
 
 @dataclass(frozen=True, slots=True)
 class BackfillResult:
@@ -91,13 +93,17 @@ def assemble_backfilled_history(
     end: date,
     futures_closes: tuple[HistoricalFuturesClose, ...],
     spot_closes: Mapping[tuple[str, str], tuple[HistoricalSpotClose, ...]],
-    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]],
+    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]] | None,
+    *,
+    dividend_basis: Mapping[tuple[str, str], StockMetric] | None = None,
 ) -> HistoryDocument:
     """Build deterministic EOD documents for every trading session."""
 
     sessions = trading_sessions(start, end)
     if not sessions:
         raise ValueError("历史回填区间没有交易日")
+    if dividends is None and (len(sessions) != 1 or dividend_basis is None):
+        raise ValueError("多交易日历史必须提供完整分红记录")
     futures_by_key = {(item.market_date, item.contract_code): item for item in futures_closes}
     if len(futures_by_key) != len(futures_closes):
         raise ValueError("中金所历史收盘包含重复合约日期")
@@ -143,16 +149,28 @@ def assemble_backfilled_history(
             key = (stock.market, stock.code)
             if key not in spot_closes:
                 raise ValueError(f"BaoStock 缺少股票 {stock.market}:{stock.code}")
-            if key not in dividends:
-                raise ValueError(f"巨潮分红缺少股票 {stock.market}:{stock.code}")
             latest_price = _spot_close_on_or_before(
                 spot_closes[key],
                 market_date,
                 key,
                 exact=False,
             )
-            dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
-            completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
+            if dividends is not None:
+                if key not in dividends:
+                    raise ValueError(f"巨潮分红缺少股票 {stock.market}:{stock.code}")
+                dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
+                completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
+                completed_year = None if completed is None else completed[0]
+                completed_dividend = None if completed is None else completed[1]
+                dividend_source = CNINFO_SOURCE
+            else:
+                cached = dividend_basis.get(key) if dividend_basis is not None else None
+                if cached is None:
+                    raise ValueError(f"缓存分红缺少股票 {stock.market}:{stock.code}")
+                dividend_per_share = cached.implemented_dividend_per_share
+                completed_year = cached.completed_fiscal_year
+                completed_dividend = cached.completed_fiscal_year_dividend_per_share
+                dividend_source = cached.dividend_source
             stock_metrics.append(
                 StockMetric(
                     market=stock.market,
@@ -161,15 +179,13 @@ def assemble_backfilled_history(
                     implemented_dividend_per_share=dividend_per_share,
                     dividend_yield=trailing_dividend_yield(dividend_per_share, latest_price),
                     price_source=BAOSTOCK_HISTORY_SOURCE,
-                    dividend_source=CNINFO_SOURCE,
-                    completed_fiscal_year=None if completed is None else completed[0],
-                    completed_fiscal_year_dividend_per_share=(
-                        None if completed is None else completed[1]
-                    ),
+                    dividend_source=dividend_source,
+                    completed_fiscal_year=completed_year,
+                    completed_fiscal_year_dividend_per_share=completed_dividend,
                     completed_fiscal_year_dividend_yield=(
                         None
-                        if completed is None
-                        else trailing_dividend_yield(completed[1], latest_price)
+                        if completed_dividend is None
+                        else trailing_dividend_yield(completed_dividend, latest_price)
                     ),
                 )
             )
@@ -220,7 +236,7 @@ def refresh_history(
     latest_path: Path = DEFAULT_LATEST_PATH,
     history_path: Path = DEFAULT_HISTORY_PATH,
 ) -> bool:
-    """Refresh one official EOD snapshot and preserve the rolling history."""
+    """Refresh EOD history and safely catch up a short trailing gap."""
 
     catalog = load_instruments()
     latest = load_latest_document(latest_path, catalog)
@@ -228,27 +244,45 @@ def refresh_history(
         raise ValueError("盘中行情不能触发日终历史更新")
 
     market_date = latest.market_date
-    product_codes = tuple(product.code for product in catalog.futures_products)
-    daily = assemble_backfilled_history(
-        catalog,
-        market_date,
-        market_date,
-        fetch_cffex_closes(market_date, market_date, product_codes),
-        fetch_baostock_closes(
-            catalog,
-            market_date - timedelta(days=31),
-            market_date,
-        ),
-        fetch_catalog_dividends(catalog),
-    )
-    snapshot = daily.snapshots[0]
     existing = (
         load_history_document(history_path, catalog).snapshots if history_path.exists() else ()
     )
+    if existing and existing[-1].market_date > market_date:
+        raise ValueError("日终历史不能晚于最新行情")
+    missing_sessions = (
+        trading_sessions(existing[-1].market_date + timedelta(days=1), market_date)
+        if existing
+        else ()
+    )
+    if len(missing_sessions) > MAX_INCREMENTAL_SESSIONS:
+        raise ValueError(
+            f"缺失 {len(missing_sessions)} 个交易日: 超过自动补齐上限 "
+            f"{MAX_INCREMENTAL_SESSIONS}; 请运行 just backfill"
+        )
+    start = missing_sessions[0] if missing_sessions else market_date
+    product_codes = tuple(product.code for product in catalog.futures_products)
+    dividends = fetch_catalog_dividends(catalog) if start != market_date else None
+    daily = assemble_backfilled_history(
+        catalog,
+        start,
+        market_date,
+        fetch_cffex_closes(start, market_date, product_codes),
+        fetch_baostock_closes(
+            catalog,
+            start - timedelta(days=31),
+            market_date,
+        ),
+        dividends,
+        dividend_basis={(metric.market, metric.code): metric for metric in latest.stocks},
+    )
+    replacement_dates = {*missing_sessions, market_date}
+    replacements = tuple(
+        snapshot for snapshot in daily.snapshots if snapshot.market_date in replacement_dates
+    )
     snapshots = retain_rolling_window(
         (
-            *(item for item in existing if item.market_date != market_date),
-            snapshot,
+            *(item for item in existing if item.market_date not in replacement_dates),
+            *replacements,
         ),
         lambda item: item.market_date,
     )
