@@ -48,8 +48,9 @@ not investment advice.
   uses randomized polite delays.
 - `main` never tracks generated JSON. Local data lives in ignored `.data`, with
   `DIVIDENDI_DATA_DIR` exported by the dev shell and Vite development URLs set in
-  `.env.development`. Production temporarily checks the `data` branch out at
-  `public/data` before building. Preserve last-good data on failure.
+  `.env.development`. Production URLs in `.env.production` read the one-commit
+  `data` branch directly from GitHub; data updates never rebuild Pages. Preserve
+  last-good data on failure and allow for the raw-file CDN's five-minute cache.
 - pnpm lockfile plus Nixpkgs `fetchPnpmDeps`; no node2nix. Python and development
   packages come from pinned Nixpkgs. Put missing packages in `nix/overlay.nix`;
   do not add uv/pip environments.
@@ -72,7 +73,8 @@ not investment advice.
 
 - `nix develop`; `just setup`
 - `just check`; `just test`; `just ci`
-- `just data`; `just history`; `just backfill`; `just validate`; `just build`
+- `just data`; `just history`; `just backfill`; `just validate`
+- `just publish-data`; `just build`
 
 ## Progress
 
@@ -95,10 +97,11 @@ not investment advice.
 - [x] Backfilled 242 trading-session closes for the rolling window and added
   on-demand selectable trend charts with 360/390 px browser QA.
 - [x] Store production JSON in a one-commit orphan `data` branch. Weekend,
-  holiday, and unchanged runs must make no commit or deployment. Changed data
-  replaces that commit with `--force-with-lease`, then deploys once.
+  holiday, and unchanged runs make no commit. Changed data replaces that commit
+  with `--force-with-lease` without rebuilding or deploying Pages.
 - [x] Added GitHub Pages and scheduled data workflows using the Nix toolchain;
-  production builds stage data without tracking it on `main`.
+  Pages deploys only on `main`, while production fetches the `data` branch
+  directly and local development continues to use ignored `.data` files.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data

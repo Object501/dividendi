@@ -85,14 +85,16 @@ Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资�
 
 `.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
 开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响
-本地调试。生产数据保存在独立的单提交 `data` 分支，构建时才检出到 `public/data`。
-每次数据变化都用 `--force-with-lease` 重建该分支的唯一根提交，因此 `main` 和正常克隆不会
-累积每日 JSON 历史。
+本地调试。生产环境则通过 `.env.production` 直接读取 GitHub 上独立的单提交 `data` 分支，
+不把 JSON 打包进网站。每次数据变化都用 `--force-with-lease` 重建该分支的唯一根提交，因此
+`main` 和正常克隆不会累积每日 JSON 历史。GitHub 的原始文件 CDN 最多可能缓存约 5 分钟；
+此外，部分网络环境访问 `raw.githubusercontent.com` 的稳定性可能弱于 GitHub Pages。
 
 GitHub Actions 在工作日交易时段约每小时只刷新 `latest.json`，并在每天 18:37
 （北京时间）只尝试更新 `history.json`；手动运行时仍可选择更新其中一个或两者。周末、节假日
-或数值未变化时不会重写 `data` 分支，也不会触发 Pages 部署；`main` 更新和真实数据变化各自
-只部署一次。
+或数值未变化时不会重写 `data` 分支。数据更新工作流只采集、校验并替换 `data` 分支，不构建
+或部署网站；只有 `main` 变化时才运行 GitHub Pages 构建和部署。因此定时工作流的触发次数
+不变，但真实数据变化也只运行一个更新任务，不再追加 Pages 的构建和部署任务。
 
 CI 和本地发布都必须使用同一个 `scripts/publish-data-branch` 入口；本地可运行
 `just publish-data`。入口逐字节比较远端数据，并统一调用 `scripts/data-commit-message` 生成
