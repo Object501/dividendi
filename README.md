@@ -135,6 +135,12 @@ Python 依赖来自固定的 Nixpkgs 和仓库 overlay，不使用 uv 或 pip �
 仓库免费保留最多 10 GB；这不是固定每 7 天清空一次。定时数据任务会持续访问有效缓存，
 本地开发则仍使用本机的 Nix store，不依赖 CI 缓存。
 
+Dependabot 每周一检查 pnpm 和 GitHub Actions 更新；依赖中的 minor/patch 更新按运行时与
+开发用途分组，major 更新保持独立，Actions 更新合并为一组。安全告警和安全更新也已开启。
+Dependabot 不支持 Nix flake 输入；npm/pnpm 更新改变锁文件后，合并前还必须清空
+`nix/package.nix` 中的旧 `fetchPnpmDeps` 哈希、运行 `nix build`，再填入错误信息给出的
+新哈希。
+
 ```sh
 nix develop
 just setup     # 安装锁定的前端依赖

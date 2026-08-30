@@ -63,6 +63,9 @@ not investment advice.
 - GitHub workflows share the repository-scoped Magic Nix Cache. Keep GitHub
   cache enabled and FlakeHub/diagnostics disabled; local builds use their own
   Nix store.
+- Dependabot checks pnpm and GitHub Actions weekly. It cannot update Nix flake
+  inputs; pnpm lock changes also require refreshing the `fetchPnpmDeps` hash
+  before merge.
 - Native systems: `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`.
 
 ## Mobile UX
@@ -117,6 +120,8 @@ not investment advice.
   incremental EOD catch-up without changing the explicit backfill/publish split.
 - [x] Added a secret-free GitHub Actions Nix binary cache shared by Pages and
   scheduled data workflows.
+- [x] Enabled grouped weekly Dependabot updates for pnpm and GitHub Actions;
+  vulnerability alerts and security updates are enabled in repository settings.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data
