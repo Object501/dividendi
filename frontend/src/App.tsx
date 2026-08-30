@@ -253,7 +253,7 @@ export function App() {
 										<p>
 											{stock.market} · {stock.code}
 											{metric
-												? ` · 最新价 ¥${numberFormat.format(metric.latestPrice)} · 近365天分红 ¥${perShareDividendFormat.format(metric.implementedDividendPerShare)} / 股`
+												? ` · 最新价 ¥${numberFormat.format(metric.latestPrice)} · 分红 ¥${perShareDividendFormat.format(metric.implementedDividendPerShare)} / 股`
 												: ""}
 										</p>
 									</div>
