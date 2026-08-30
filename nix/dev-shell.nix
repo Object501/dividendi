@@ -12,7 +12,7 @@
       pkgs.just
       pkgs.nodejs_24
       pkgs.pnpm_11
-      pkgs.python3
+      pkgs.dividendi-python
     ];
 
     inherit (pre-commit-check) shellHook;

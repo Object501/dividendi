@@ -19,7 +19,12 @@
         "aarch64-darwin"
       ];
 
-      pkgsFor = system: import nixpkgs { inherit system; };
+      pkgsFor =
+        system:
+        import nixpkgs {
+          inherit system;
+          overlays = [ (import ./nix/overlay.nix) ];
+        };
 
       nativeChecks = forSystems (
         system:
