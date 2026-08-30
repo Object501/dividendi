@@ -1,0 +1,103 @@
+{
+	"schemaVersion": 1,
+	"snapshots": [
+		{
+			"schemaVersion": 1,
+			"marketDate": "2026-08-28",
+			"fetchedAt": "2026-08-30T06:22:32.527505Z",
+			"futures": [
+				{
+					"productCode": "IM",
+					"contractCode": "IM2609",
+					"expiryDate": "2026-09-18",
+					"indexLevel": "7705.0293",
+					"futuresPrice": "7666.600",
+					"discountPoints": "38.4293",
+					"remainingTradingDays": 15,
+					"dailyDiscountPoints": "2.561953333333333333333333333",
+					"source": "sina"
+				},
+				{
+					"productCode": "IM",
+					"contractCode": "IM2610",
+					"expiryDate": "2026-10-16",
+					"indexLevel": "7705.0293",
+					"futuresPrice": "7605.600",
+					"discountPoints": "99.4293",
+					"remainingTradingDays": 29,
+					"dailyDiscountPoints": "3.428596551724137931034482759",
+					"source": "sina"
+				},
+				{
+					"productCode": "IM",
+					"contractCode": "IM2612",
+					"expiryDate": "2026-12-18",
+					"indexLevel": "7705.0293",
+					"futuresPrice": "7456.800",
+					"discountPoints": "248.2293",
+					"remainingTradingDays": 74,
+					"dailyDiscountPoints": "3.35445",
+					"source": "sina"
+				},
+				{
+					"productCode": "IM",
+					"contractCode": "IM2703",
+					"expiryDate": "2027-03-19",
+					"indexLevel": "7705.0293",
+					"futuresPrice": "7258.800",
+					"discountPoints": "446.2293",
+					"remainingTradingDays": 133,
+					"dailyDiscountPoints": "3.355107518796992481203007519",
+					"source": "sina"
+				}
+			],
+			"stocks": [
+				{
+					"market": "SH",
+					"code": "601939",
+					"latestPrice": "10.690",
+					"implementedDividendPerShare": "0.3887",
+					"dividendYield": "0.03636108512628624883068288120",
+					"priceSource": "sina",
+					"dividendSource": "cninfo"
+				},
+				{
+					"market": "SH",
+					"code": "601398",
+					"latestPrice": "7.860",
+					"implementedDividendPerShare": "0.3103",
+					"dividendYield": "0.03947837150127226463104325700",
+					"priceSource": "sina",
+					"dividendSource": "cninfo"
+				},
+				{
+					"market": "SH",
+					"code": "601088",
+					"latestPrice": "47.630",
+					"implementedDividendPerShare": "2.01",
+					"dividendYield": "0.04220029393239554902372454336",
+					"priceSource": "sina",
+					"dividendSource": "cninfo"
+				},
+				{
+					"market": "SH",
+					"code": "601919",
+					"latestPrice": "16.880",
+					"implementedDividendPerShare": "1.00",
+					"dividendYield": "0.05924170616113744075829383886",
+					"priceSource": "sina",
+					"dividendSource": "cninfo"
+				},
+				{
+					"market": "SH",
+					"code": "601318",
+					"latestPrice": "55.850",
+					"implementedDividendPerShare": "2.70",
+					"dividendYield": "0.04834377797672336615935541629",
+					"priceSource": "sina",
+					"dividendSource": "cninfo"
+				}
+			]
+		}
+	]
+}
