@@ -2,6 +2,7 @@ import { LineChart } from "echarts/charts";
 import {
 	AriaComponent,
 	GridComponent,
+	LegendComponent,
 	TooltipComponent,
 } from "echarts/components";
 import { init, use } from "echarts/core";
@@ -11,17 +12,28 @@ import { useEffect, useRef } from "react";
 import { chartPalette } from "./chartTheme";
 import { useTheme } from "./theme";
 
-use([LineChart, GridComponent, TooltipComponent, AriaComponent, SVGRenderer]);
+use([
+	LineChart,
+	GridComponent,
+	LegendComponent,
+	TooltipComponent,
+	AriaComponent,
+	SVGRenderer,
+]);
 
 export interface LineChartDatum {
+	readonly closePrice: number;
 	readonly date: string;
-	readonly value: number;
+	readonly metricValue: number;
 }
 
 interface MetricLineChartProps {
 	readonly data: readonly LineChartDatum[];
 	readonly description: string;
-	readonly unit: "点" | "%";
+	readonly metricLabel: string;
+	readonly metricUnit: "点" | "%";
+	readonly priceLabel: string;
+	readonly priceUnit: "点" | "元";
 }
 
 const numberFormat = new Intl.NumberFormat("zh-CN", {
@@ -37,7 +49,10 @@ function shortDate(value: string): string {
 export default function MetricLineChart({
 	data,
 	description,
-	unit,
+	metricLabel,
+	metricUnit,
+	priceLabel,
+	priceUnit,
 }: MetricLineChartProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const { theme } = useTheme();
@@ -60,15 +75,20 @@ export default function MetricLineChart({
 				containLabel: true,
 				left: 4,
 				right: 8,
-				top: 20,
+				top: 48,
+			},
+			legend: {
+				data: [metricLabel, priceLabel],
+				itemHeight: 8,
+				itemWidth: 18,
+				textStyle: { color: palette.label, fontSize: 10 },
+				top: 4,
 			},
 			tooltip: {
 				backgroundColor: palette.tooltipBackground,
 				borderColor: palette.tooltipBorder,
 				textStyle: { color: palette.tooltipText },
 				trigger: "axis",
-				valueFormatter: (value: unknown) =>
-					`${numberFormat.format(Number(value))}${unit}`,
 			},
 			xAxis: {
 				axisLabel: {
@@ -83,19 +103,32 @@ export default function MetricLineChart({
 				data: data.map((item) => item.date),
 				type: "category",
 			},
-			yAxis: {
-				axisLabel: { color: palette.axis, fontSize: 10 },
-				axisLine: { show: false },
-				name: unit,
-				nameTextStyle: { color: palette.axis, fontSize: 10 },
-				scale: true,
-				splitLine: { lineStyle: { color: palette.splitLine } },
-				type: "value",
-			},
+			yAxis: [
+				{
+					axisLabel: { color: palette.positive, fontSize: 10 },
+					axisLine: { show: false },
+					name: metricUnit,
+					nameTextStyle: { color: palette.positive, fontSize: 10 },
+					position: "left",
+					scale: true,
+					splitLine: { lineStyle: { color: palette.splitLine } },
+					type: "value",
+				},
+				{
+					axisLabel: { color: palette.secondary, fontSize: 10 },
+					axisLine: { show: false },
+					name: priceUnit,
+					nameTextStyle: { color: palette.secondary, fontSize: 10 },
+					position: "right",
+					scale: true,
+					splitLine: { show: false },
+					type: "value",
+				},
+			],
 			series: [
 				{
 					areaStyle: { color: palette.area },
-					data: data.map((item) => item.value),
+					data: data.map((item) => item.metricValue),
 					itemStyle: { color: palette.positive },
 					lineStyle: { color: palette.positive, width: 2 },
 					markLine: {
@@ -111,7 +144,26 @@ export default function MetricLineChart({
 					},
 					showSymbol: false,
 					smooth: 0.12,
+					name: metricLabel,
+					tooltip: {
+						valueFormatter: (value: unknown) =>
+							`${numberFormat.format(Number(value))}${metricUnit}`,
+					},
 					type: "line",
+				},
+				{
+					data: data.map((item) => item.closePrice),
+					itemStyle: { color: palette.secondary },
+					lineStyle: { color: palette.secondary, width: 1.8 },
+					name: priceLabel,
+					showSymbol: false,
+					smooth: 0.12,
+					tooltip: {
+						valueFormatter: (value: unknown) =>
+							`${numberFormat.format(Number(value))}${priceUnit}`,
+					},
+					type: "line",
+					yAxisIndex: 1,
 				},
 			],
 		});
@@ -122,7 +174,15 @@ export default function MetricLineChart({
 			observer.disconnect();
 			chart.dispose();
 		};
-	}, [data, description, theme, unit]);
+	}, [
+		data,
+		description,
+		metricLabel,
+		metricUnit,
+		priceLabel,
+		priceUnit,
+		theme,
+	]);
 
 	return <div className="metric-chart metric-chart--history" ref={container} />;
 }

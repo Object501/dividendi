@@ -638,26 +638,41 @@ dd {
 }
 
 .history-summary {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	gap: 0.3rem 0.8rem;
 	margin-top: 1.35rem;
 }
 
-.history-summary p {
-	align-self: end;
+.history-summary__values {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.history-summary__values > div {
+	min-width: 0;
+	padding: 0.75rem;
+	background: var(--surface-subtle);
+	border-radius: 0.75rem;
+}
+
+.history-summary dt,
+.history-summary > p {
 	color: var(--muted);
-	font-size: 0.74rem;
+	font-size: 0.68rem;
 	font-weight: 680;
 }
 
-.history-summary strong {
-	grid-row: span 2;
-	font-size: 1.35rem;
+.history-summary dd {
+	margin-top: 0.3rem;
+	font-size: 1.05rem;
+	font-weight: 780;
 	letter-spacing: -0.03em;
 }
 
-.history-summary span,
+.history-summary > p {
+	margin-top: 0.55rem;
+	line-height: 1.55;
+}
+
 .history-hint,
 .history-empty {
 	color: var(--muted);
@@ -675,7 +690,7 @@ dd {
 }
 
 .metric-chart--history {
-	height: 15rem;
+	height: 17rem;
 }
 
 .bottom-nav {

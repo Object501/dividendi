@@ -249,7 +249,7 @@ export function App() {
 										<p>
 											{stock.market} · {stock.code}
 											{metric
-												? ` · ¥${numberFormat.format(metric.latestPrice)} · 分红 ¥${numberFormat.format(metric.implementedDividendPerShare)}`
+												? ` · 最新价 ¥${numberFormat.format(metric.latestPrice)} · 分红 ¥${numberFormat.format(metric.implementedDividendPerShare)}`
 												: ""}
 										</p>
 									</div>
@@ -337,7 +337,10 @@ function ContractRow({ contract }: { readonly contract: FuturesMetric }) {
 		<div className="contract-row">
 			<div>
 				<strong>{contract.contractCode}</strong>
-				<span>{contractDate(contract.expiryDate)}到期</span>
+				<span>
+					{contractDate(contract.expiryDate)}到期 · 最新价{" "}
+					{numberFormat.format(contract.futuresPrice)}
+				</span>
 			</div>
 			<dl>
 				<div>

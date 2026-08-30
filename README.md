@@ -6,6 +6,8 @@
 - 自选 A 股过去 365 天已实施现金分红对应的税前股息率。
 
 界面默认使用暗色主题，也可在页首切换为浅色；浏览器会记住本机选择。
+历史趋势图同时显示指标和当日收盘价：左轴为股息率或日化贴水点数，右轴为股票或期货
+合约收盘价。
 
 在线站点：[object501.github.io/dividendi](https://object501.github.io/dividendi/)。
 
@@ -43,7 +45,7 @@ Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资�
 - `.data/latest.json`：当前行情；数值没有变化时不重写文件，浏览器以 `no-store`
   下载且只保留在内存中；
 - `.data/history.json`：仅含交易日收盘快照；同日覆盖，并只保留最新交易日向前 365
-  天，用户打开历史趋势时才下载。
+  天，用户打开历史趋势时才下载；图表从同一快照读取指标与收盘价。
 
 `.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
 开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响

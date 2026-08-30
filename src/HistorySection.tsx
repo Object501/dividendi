@@ -9,9 +9,10 @@ const MetricLineChart = lazy(() => import("./MetricLineChart"));
 type MetricKind = "futures" | "stocks";
 type RangeDays = 31 | 92 | 365;
 
-interface TrendPoint {
+export interface TrendPoint {
+	readonly closePrice: number;
 	readonly date: string;
-	readonly value: number;
+	readonly metricValue: number;
 }
 
 const numberFormat = new Intl.NumberFormat("zh-CN", {
@@ -51,7 +52,7 @@ function currentContracts(
 	];
 }
 
-function futuresPoints(
+export function futuresPoints(
 	history: HistoryData,
 	contractCode: string,
 ): readonly TrendPoint[] {
@@ -61,11 +62,17 @@ function futuresPoints(
 		);
 		return metric === undefined
 			? []
-			: [{ date: snapshot.marketDate, value: metric.dailyDiscountPoints }];
+			: [
+					{
+						closePrice: metric.futuresPrice,
+						date: snapshot.marketDate,
+						metricValue: metric.dailyDiscountPoints,
+					},
+				];
 	});
 }
 
-function stockPoints(
+export function stockPoints(
 	history: HistoryData,
 	stockKey: string,
 ): readonly TrendPoint[] {
@@ -75,7 +82,13 @@ function stockPoints(
 		);
 		return metric === undefined
 			? []
-			: [{ date: snapshot.marketDate, value: metric.dividendYield * 100 }];
+			: [
+					{
+						closePrice: metric.latestPrice,
+						date: snapshot.marketDate,
+						metricValue: metric.dividendYield * 100,
+					},
+				];
 	});
 }
 
@@ -100,7 +113,9 @@ export function HistorySection({
 				<HistoryExplorer history={state.data} latest={latest} />
 			) : (
 				<div className="history-gate">
-					<p>历史文件约含一年交易日。需要时再下载，避免拖慢手机首屏。</p>
+					<p>
+						历史文件约含一年交易日，并包含对应收盘价。需要时再下载，避免拖慢手机首屏。
+					</p>
 					<button
 						className="primary-button"
 						disabled={state.status === "loading"}
@@ -150,7 +165,10 @@ function HistoryExplorer({
 		kind === "futures"
 			? `${contractCode} 日化贴水`
 			: `${selectedStock?.name ?? stockKey} 股息率`;
-	const unit = kind === "futures" ? "点" : "%";
+	const metricLabel = kind === "futures" ? "日化贴水" : "股息率";
+	const metricUnit = kind === "futures" ? "点" : "%";
+	const priceLabel = kind === "futures" ? "期货收盘价" : "股票收盘价";
+	const priceUnit = kind === "futures" ? "点" : "元";
 	const latestPoint = points.at(-1);
 
 	return (
@@ -227,23 +245,38 @@ function HistoryExplorer({
 			) : (
 				<>
 					<div className="history-summary">
-						<p>{label}</p>
-						<strong>
-							{kind === "futures"
-								? `${latestPoint.value > 0 ? "+" : ""}${numberFormat.format(latestPoint.value)}点`
-								: percentFormat.format(latestPoint.value / 100)}
-						</strong>
-						<span>
+						<dl className="history-summary__values">
+							<div>
+								<dt>{label}</dt>
+								<dd>
+									{kind === "futures"
+										? `${latestPoint.metricValue > 0 ? "+" : ""}${numberFormat.format(latestPoint.metricValue)}点`
+										: percentFormat.format(latestPoint.metricValue / 100)}
+								</dd>
+							</div>
+							<div>
+								<dt>{priceLabel}</dt>
+								<dd>
+									{kind === "stocks" ? "¥" : ""}
+									{numberFormat.format(latestPoint.closePrice)}
+									{kind === "futures" ? "点" : ""}
+								</dd>
+							</div>
+						</dl>
+						<p>
 							{points[0]?.date} 至 {latestPoint.date} · {points.length} 个交易日
-						</span>
+						</p>
 					</div>
 					<Suspense
-						fallback={<div className="chart-placeholder">正在绘制历史趋势</div>}
+						fallback={<div className="chart-placeholder">正在绘制双轴趋势</div>}
 					>
 						<MetricLineChart
 							data={points}
-							description={`${label}从${points[0]?.date}到${latestPoint.date}的历史趋势`}
-							unit={unit}
+							description={`${label}与${priceLabel}从${points[0]?.date}到${latestPoint.date}的历史趋势；左轴为${metricLabel}，右轴为收盘价`}
+							metricLabel={metricLabel}
+							metricUnit={metricUnit}
+							priceLabel={priceLabel}
+							priceUnit={priceUnit}
 						/>
 					</Suspense>
 					{kind === "futures" ? (

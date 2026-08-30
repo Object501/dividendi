@@ -7,6 +7,7 @@ export interface ChartPalette {
 	readonly label: string;
 	readonly negative: string;
 	readonly positive: string;
+	readonly secondary: string;
 	readonly splitLine: string;
 	readonly tooltipBackground: string;
 	readonly tooltipBorder: string;
@@ -21,6 +22,7 @@ const darkPalette: ChartPalette = {
 	label: "#d2ddd8",
 	negative: "#f09b87",
 	positive: "#72d0b4",
+	secondary: "#d5bd68",
 	splitLine: "#2a3833",
 	tooltipBackground: "#18231f",
 	tooltipBorder: "#34433e",
@@ -35,6 +37,7 @@ const lightPalette: ChartPalette = {
 	label: "#42534d",
 	negative: "#b35b49",
 	positive: "#1e6e5e",
+	secondary: "#9a7113",
 	splitLine: "#e8e9e3",
 	tooltipBackground: "#fffdf8",
 	tooltipBorder: "#d9ddd4",

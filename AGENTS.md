@@ -55,6 +55,8 @@ not investment advice.
   colors synchronized with the selected theme.
 - Show market/fetch time and Chinese summaries before charts. Keep explicit
   loading, error, empty, and last-good states.
+- Historical charts pair each metric with its same-day close: metric on the
+  left axis and stock/futures close on the right axis.
 
 ## Commands
 
@@ -74,6 +76,8 @@ not investment advice.
   empty/error states, and 360/390 px browser QA.
 - [x] Default-dark theme with a persistent light toggle and matching ECharts
   palettes, verified at 360/390 px without horizontal overflow.
+- [x] Historical dual-axis charts and summaries pair dividend yield or daily
+  discount points with the same trading day's close.
 - [x] Backfilled 242 trading-session closes for the rolling window and added
   on-demand selectable trend charts with 360/390 px browser QA.
 - [x] Store production JSON in a one-commit orphan `data` branch. Weekend,
