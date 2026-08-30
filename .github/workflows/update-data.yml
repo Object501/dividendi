@@ -58,7 +58,7 @@ jobs:
           if [[ "$EVENT_NAME" == "schedule" && "$SCHEDULE" == "17 1-7 * * 1-5" ]]; then
             mode=latest
           elif [[ "$EVENT_NAME" == "schedule" ]]; then
-            mode=all
+            mode=history
           else
             mode=$REQUESTED_MODE
           fi

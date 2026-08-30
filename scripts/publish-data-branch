@@ -27,10 +27,31 @@ export GIT_DIR=$git_directory
 export GIT_INDEX_FILE=$temporary_directory/index
 export GIT_WORK_TREE=$data_directory
 
+changed_files=()
+for filename in latest.json history.json; do
+	if [[ -z "$expected_commit" ]] \
+		|| ! git cat-file -e "$expected_commit:$filename" 2>/dev/null \
+		|| ! cmp -s <(git show "$expected_commit:$filename") "$data_directory/$filename"; then
+		changed_files+=("$filename")
+	fi
+done
+
+if (( ${#changed_files[@]} == 0 )); then
+	printf 'data unchanged\n'
+	exit 0
+fi
+
 git read-tree --empty
 git add -- latest.json history.json
 tree=$(git write-tree)
-commit=$(printf 'Update market data.\n' | git commit-tree "$tree")
+data_timestamp=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
+commit=$(
+	{
+		printf 'chore: update data @ %s\n\n' "$data_timestamp"
+		printf 'Files changed:\n'
+		printf -- '- %s\n' "${changed_files[@]}"
+	} | git commit-tree "$tree"
+)
 
 git push \
 	"$remote" \

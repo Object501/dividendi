@@ -34,6 +34,9 @@ not investment advice.
   in memory, and loads history only on explicit user interaction.
 - Browser polling is hourly, visible/online, and limited to the China-market
   refresh window. Every trigger shares a hard five-minute minimum gap.
+- Scheduled hourly runs refresh only `latest.json`; the daily EOD run refreshes
+  only `history.json`. Data-branch commit titles use a Shanghai timestamp and
+  their bodies list the JSON files whose bytes actually changed.
 
 ## Architecture
 
