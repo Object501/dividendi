@@ -74,9 +74,10 @@
 
 ## 技术结构
 
-网页使用 React、TypeScript、Vite 和按需加载的 ECharts，构建结果是可直接托管到 GitHub
-Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资讯公开接口，先进行严格校验，再
-原子更新本地开发数据：
+网页源代码和构建配置统一位于 `frontend/`，使用 React、TypeScript、Vite 和按需加载的
+ECharts；根目录只保留 Node.js 依赖声明、共享配置、Python 采集器和工程基础设施。构建结果
+是可直接托管到 GitHub Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资讯公开
+接口，先进行严格校验，再原子更新本地开发数据：
 
 - `.data/latest.json`：当前行情；数值没有变化时不重写文件，浏览器以 `no-store`
   下载且只保留在内存中；

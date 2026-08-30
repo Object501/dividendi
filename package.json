@@ -5,11 +5,11 @@
 	"type": "module",
 	"packageManager": "pnpm@11.22.0",
 	"scripts": {
-		"build": "tsc -b && vite build",
-		"dev": "vite",
-		"preview": "vite preview",
-		"test": "vitest run",
-		"typecheck": "tsc -b"
+		"build": "tsc -b frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
+		"dev": "vite --config frontend/vite.config.ts",
+		"preview": "vite preview --config frontend/vite.config.ts",
+		"test": "vitest run --config frontend/vite.config.ts",
+		"typecheck": "tsc -b frontend/tsconfig.json"
 	},
 	"dependencies": {
 		"echarts": "6.1.0",

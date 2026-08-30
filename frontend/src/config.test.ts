@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import rawInstruments from "../config/instruments.json";
+import rawInstruments from "../../config/instruments.json";
 import { parseInstrumentConfig } from "./config";
 
 describe("parseInstrumentConfig", () => {

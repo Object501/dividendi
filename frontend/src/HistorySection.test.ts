@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import latestFixture from "../collector/tests/fixtures/latest.json";
+import latestFixture from "../../collector/tests/fixtures/latest.json";
 import { instruments } from "./config";
 import { parseLatestData } from "./data";
 import { futuresPoints, stockPoints } from "./HistorySection";

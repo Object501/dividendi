@@ -42,6 +42,8 @@ not investment advice.
 
 - React + TypeScript + Vite; lazy, tree-shaken ECharts. Static GitHub Pages;
   no runtime backend, accounts, database, browser Python, C++, WASM, or SSR.
+- Keep site HTML, TypeScript, styles, tests, and Vite/TypeScript configuration
+  under `frontend/`. Root Node manifests remain for Nix and pnpm integration.
 - Python collector with narrow provider adapters: Sina current quotes, CNInfo
   implemented cash dividends, official CFFEX close archives, BaoStock close
   history, CFFEX rules, and the SSE trading calendar. Multi-request collection
@@ -102,6 +104,8 @@ not investment advice.
 - [x] Added GitHub Pages and scheduled data workflows using the Nix toolchain;
   Pages deploys only on `main`, while production fetches the `data` branch
   directly and local development continues to use ignored `.data` files.
+- [x] Consolidated all site source and frontend build configuration under
+  `frontend/` while keeping every root Justfile recipe operational.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
 Current stage: the static vertical slice is deployed with a rolling EOD data

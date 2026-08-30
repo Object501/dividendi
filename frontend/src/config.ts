@@ -1,4 +1,4 @@
-import rawInstruments from "../config/instruments.json";
+import rawInstruments from "../../config/instruments.json";
 
 export interface MarketInstrument {
 	readonly code: string;
