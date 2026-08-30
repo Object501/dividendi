@@ -39,10 +39,19 @@ class PublishDataBranchTest(unittest.TestCase):
         (self.data / "latest.json").write_text(f'{{"value":{latest}}}\n')
         (self.data / "history.json").write_text(f'{{"value":{history}}}\n')
 
-    def publish(self) -> subprocess.CompletedProcess[str]:
-        environment = os.environ | {"DIVIDENDI_DATA_TIMESTAMP": TIMESTAMP}
+    def publish(
+        self,
+        *,
+        rewrite_message: bool = False,
+        timestamp: str = TIMESTAMP,
+    ) -> subprocess.CompletedProcess[str]:
+        environment = os.environ | {"DIVIDENDI_DATA_TIMESTAMP": timestamp}
+        arguments: list[str | Path] = ["bash", PUBLISH_SCRIPT]
+        if rewrite_message:
+            arguments.append("--rewrite-message")
+        arguments.extend((self.data, "origin"))
         return subprocess.run(
-            ["bash", PUBLISH_SCRIPT, self.data, "origin"],
+            arguments,
             cwd=self.repository,
             env=environment,
             check=True,
@@ -140,6 +149,51 @@ class PublishDataBranchTest(unittest.TestCase):
                     f"chore: update data @ {TIMESTAMP}",
                     "",
                     "Files changed:",
+                    "- history.json",
+                )
+            ),
+        )
+
+    def test_can_rewrite_only_the_root_commit_message(self) -> None:
+        self.publish()
+        first_commit = subprocess.run(
+            ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        first_tree = subprocess.run(
+            ["git", f"--git-dir={self.remote}", "show", "-s", "--format=%T", "data"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        rewritten_timestamp = "2026-08-30 21:31"
+        self.publish(rewrite_message=True, timestamp=rewritten_timestamp)
+        rewritten_commit = subprocess.run(
+            ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        rewritten_tree = subprocess.run(
+            ["git", f"--git-dir={self.remote}", "show", "-s", "--format=%T", "data"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        self.assertNotEqual(first_commit, rewritten_commit)
+        self.assertEqual(first_tree, rewritten_tree)
+        self.assertEqual(
+            self.commit_message(),
+            "\n".join(
+                (
+                    f"chore: update data @ {rewritten_timestamp}",
+                    "",
+                    "Files changed:",
+                    "- latest.json",
                     "- history.json",
                 )
             ),

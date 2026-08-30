@@ -2,8 +2,14 @@
 
 set -euo pipefail
 
+rewrite_message=false
+if [[ ${1:-} == "--rewrite-message" ]]; then
+	rewrite_message=true
+	shift
+fi
+
 if (( $# < 1 || $# > 2 )); then
-	echo "usage: scripts/publish-data-branch DATA_DIRECTORY [REMOTE]" >&2
+	echo "usage: scripts/publish-data-branch [--rewrite-message] DATA_DIRECTORY [REMOTE]" >&2
 	exit 2
 fi
 
@@ -38,8 +44,12 @@ for filename in latest.json history.json; do
 done
 
 if (( ${#changed_files[@]} == 0 )); then
-	printf 'data unchanged\n'
-	exit 0
+	if [[ $rewrite_message == true ]]; then
+		changed_files=(latest.json history.json)
+	else
+		printf 'data unchanged\n'
+		exit 0
+	fi
 fi
 
 git read-tree --empty
