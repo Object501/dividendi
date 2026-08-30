@@ -3,6 +3,7 @@ import {
 	AriaComponent,
 	GridComponent,
 	LegendComponent,
+	MarkLineComponent,
 	TooltipComponent,
 } from "echarts/components";
 import { init, use } from "echarts/core";
@@ -16,6 +17,7 @@ use([
 	LineChart,
 	GridComponent,
 	LegendComponent,
+	MarkLineComponent,
 	TooltipComponent,
 	AriaComponent,
 	SVGRenderer,
@@ -27,9 +29,16 @@ export interface LineChartDatum {
 	readonly metricValue: number;
 }
 
+export interface FiscalYearTransition {
+	readonly date: string;
+	readonly fromFiscalYear: number;
+	readonly toFiscalYear: number;
+}
+
 interface MetricLineChartProps {
 	readonly data: readonly LineChartDatum[];
 	readonly description: string;
+	readonly fiscalYearTransitions?: readonly FiscalYearTransition[];
 	readonly metricLabel: string;
 	readonly metricUnit: "点" | "%";
 	readonly priceLabel: string;
@@ -49,6 +58,7 @@ function shortDate(value: string): string {
 export default function MetricLineChart({
 	data,
 	description,
+	fiscalYearTransitions = [],
 	metricLabel,
 	metricUnit,
 	priceLabel,
@@ -132,13 +142,33 @@ export default function MetricLineChart({
 					itemStyle: { color: palette.positive },
 					lineStyle: { color: palette.positive, width: 2 },
 					markLine: {
-						data: [{ yAxis: 0 }],
-						label: { show: false },
-						lineStyle: {
-							color: palette.zeroLine,
-							type: "dashed",
-							width: 1,
-						},
+						data: [
+							{
+								label: { show: false },
+								lineStyle: {
+									color: palette.zeroLine,
+									type: "dashed",
+									width: 1,
+								},
+								yAxis: 0,
+							},
+							...fiscalYearTransitions.map((transition) => ({
+								label: {
+									color: palette.annotation,
+									fontSize: 9,
+									formatter: `${transition.toFiscalYear}财年`,
+									position: "insideEndTop",
+									show: true,
+								},
+								lineStyle: {
+									color: palette.annotation,
+									type: "dashed",
+									width: 1.2,
+								},
+								name: `${transition.fromFiscalYear} 财年 → ${transition.toFiscalYear} 财年`,
+								xAxis: transition.date,
+							})),
+						],
 						silent: true,
 						symbol: "none",
 					},
@@ -177,6 +207,7 @@ export default function MetricLineChart({
 	}, [
 		data,
 		description,
+		fiscalYearTransitions,
 		metricLabel,
 		metricUnit,
 		priceLabel,

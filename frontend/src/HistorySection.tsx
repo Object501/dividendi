@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 
 import { instruments } from "./config";
 import type { HistoryData, LatestData } from "./data";
+import type { FiscalYearTransition } from "./MetricLineChart";
 import { useHistoryData } from "./useHistoryData";
 
 const MetricLineChart = lazy(() => import("./MetricLineChart"));
@@ -103,6 +104,25 @@ export function stockPoints(
 	});
 }
 
+export function fiscalYearTransitions(
+	points: readonly TrendPoint[],
+): readonly FiscalYearTransition[] {
+	return points.flatMap((point, index) => {
+		const previous = points[index - 1];
+		return previous?.fiscalYear !== undefined &&
+			point.fiscalYear !== undefined &&
+			previous.fiscalYear !== point.fiscalYear
+			? [
+					{
+						date: point.date,
+						fromFiscalYear: previous.fiscalYear,
+						toFiscalYear: point.fiscalYear,
+					},
+				]
+			: [];
+	});
+}
+
 export function HistorySection({
 	latest,
 }: {
@@ -196,6 +216,16 @@ function HistoryExplorer({
 	const priceLabel = kind === "futures" ? "期货收盘价" : "股票收盘价";
 	const priceUnit = kind === "futures" ? "点" : "元";
 	const latestPoint = points.at(-1);
+	const transitions =
+		kind === "stocks" && dividendBasis === "reference"
+			? fiscalYearTransitions(points)
+			: [];
+	const transitionDescription = transitions
+		.map(
+			(transition) =>
+				`${transition.date} 从 ${transition.fromFiscalYear} 财年切换到 ${transition.toFiscalYear} 财年`,
+		)
+		.join("；");
 
 	return (
 		<div className="history-card">
@@ -325,7 +355,8 @@ function HistoryExplorer({
 					>
 						<MetricLineChart
 							data={points}
-							description={`${label}与${priceLabel}从${points[0]?.date}到${latestPoint.date}的历史趋势；左轴为${metricLabel}，右轴为收盘价`}
+							description={`${label}与${priceLabel}从${points[0]?.date}到${latestPoint.date}的历史趋势；左轴为${metricLabel}，右轴为收盘价${transitionDescription === "" ? "" : `；财年切换：${transitionDescription}`}`}
+							fiscalYearTransitions={transitions}
 							metricLabel={metricLabel}
 							metricUnit={metricUnit}
 							priceLabel={priceLabel}
@@ -338,7 +369,7 @@ function HistoryExplorer({
 						</p>
 					) : dividendBasis === "reference" ? (
 						<p className="history-hint">
-							示例口径：截至每个交易日，采用最近一个已完成派息的财年，合计该财年的常规现金分红并排除特别分红
+							示例口径：截至每个交易日，采用最近一个已完成派息的财年，合计该财年的常规现金分红并排除特别分红；若所选范围内财年发生切换，图中以竖线标出
 							{latestPoint.fiscalYear === undefined
 								? "。"
 								: `；当前采用 ${latestPoint.fiscalYear} 财年。`}

@@ -105,7 +105,8 @@ not investment advice.
   discount points with the same trading day's close.
 - [x] Added a historical dividend-basis switch between trailing 365-day yield
   and a completed-fiscal-year purchase reference that excludes special
-  dividends and avoids mechanical rolling-window exits.
+  dividends, avoids mechanical rolling-window exits, and marks fiscal-year
+  changes on the chart.
 - [x] Backfilled 242 trading-session closes for the rolling window and added
   on-demand selectable trend charts with 360/390 px browser QA.
 - [x] Store production JSON in a one-commit orphan `data` branch. Weekend,

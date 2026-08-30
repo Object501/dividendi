@@ -1,6 +1,7 @@
 import type { Theme } from "./theme";
 
 export interface ChartPalette {
+	readonly annotation: string;
 	readonly area: string;
 	readonly axis: string;
 	readonly axisLine: string;
@@ -16,6 +17,7 @@ export interface ChartPalette {
 }
 
 const darkPalette: ChartPalette = {
+	annotation: "#c8a9e8",
 	area: "rgb(114 208 180 / 16%)",
 	axis: "#9caca6",
 	axisLine: "#34433e",
@@ -31,6 +33,7 @@ const darkPalette: ChartPalette = {
 };
 
 const lightPalette: ChartPalette = {
+	annotation: "#75539b",
 	area: "rgb(30 110 94 / 10%)",
 	axis: "#64716c",
 	axisLine: "#d9ddd4",
