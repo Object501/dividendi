@@ -10,8 +10,8 @@
     packages = [
       pkgs.git
       pkgs.just
-      pkgs.nodejs
-      pkgs.pnpm
+      pkgs.nodejs_24
+      pkgs.pnpm_11
       pkgs.python3
     ];
 

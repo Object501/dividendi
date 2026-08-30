@@ -10,8 +10,10 @@ Dividendi 在拉丁文中是 "of the dividend" 的意思，即“关于股息的
 
 ```sh
 nix develop
+just setup
 just check
-nix flake check
+just build
+just ci
 ```
 
 ## 标的配置

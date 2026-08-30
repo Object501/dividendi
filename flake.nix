@@ -29,9 +29,22 @@
           src = ./.;
         }
       );
+
+      nativePackages = forSystems (system: {
+        default = import ./nix/package.nix {
+          pkgs = pkgsFor system;
+          src = ./.;
+        };
+      });
     in
     {
-      checks = nativeChecks;
+      checks = forSystems (
+        system:
+        nativeChecks.${system}
+        // {
+          package = nativePackages.${system}.default;
+        }
+      );
 
       devShells = forSystems (
         system:
@@ -42,5 +55,6 @@
       );
 
       formatter = forSystems (system: (pkgsFor system).nixfmt);
+      packages = nativePackages;
     };
 }
