@@ -33,7 +33,13 @@ Pages 的纯静态文件。Python 采集器直接读取新浪行情和巨潮资�
 
 `.data` 不进入 Git。Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`，Vite
 开发模式通过 `.env.development` 从该目录提供 JSON，因此删除 `main` 分支的数据不会影响
-本地调试。生产数据将保存在独立的单提交 `data` 分支，构建时才检出到 `public/data`。
+本地调试。生产数据保存在独立的单提交 `data` 分支，构建时才检出到 `public/data`。
+每次数据变化都用 `--force-with-lease` 重建该分支的唯一根提交，因此 `main` 和正常克隆不会
+累积每日 JSON 历史。
+
+GitHub Actions 在工作日交易时段约每小时刷新当前快照，并在每天 18:37（北京时间）尝试
+更新官方收盘历史。周末、节假日或数值未变化时不会重写 `data` 分支，也不会触发 Pages
+部署；`main` 更新和真实数据变化各自只部署一次。
 
 ## 开发
 
@@ -46,7 +52,9 @@ nix develop
 just setup     # 安装锁定的前端依赖
 just check     # 格式、静态检查、类型检查和单元测试
 just data      # 抓取并验证最新行情
-just history   # 把已发布的日终行情写入滚动历史
+just history   # 抓取官方收盘并更新滚动历史
+just backfill  # 带随机节流地重建最近 365 天收盘历史
+just validate  # 校验待发布的最新行情和历史
 just build     # 构建静态网站
 just ci        # 执行 Nix 检查
 ```

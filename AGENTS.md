@@ -24,7 +24,9 @@ not investment advice.
   and TypeScript validation. Publish complete, common-date data only.
 - `latest.json` is atomically replaced only when financial values change.
   `history.json` replaces the same market date and retains exactly
-  `(newest - 365 days, newest]`; never archive an intraday snapshot.
+  `(newest - 365 days, newest]` of trading-session closes; never archive an
+  intraday snapshot. The browser fetches latest with `no-store`, keeps it only
+  in memory, and loads history only on explicit user interaction.
 - Browser polling is hourly, visible/online, and limited to the China-market
   refresh window. Every trigger shares a hard five-minute minimum gap.
 
@@ -33,7 +35,9 @@ not investment advice.
 - React + TypeScript + Vite; lazy, tree-shaken ECharts. Static GitHub Pages;
   no runtime backend, accounts, database, browser Python, C++, WASM, or SSR.
 - Python collector with narrow provider adapters: Sina current quotes, CNInfo
-  implemented cash dividends, CFFEX rules, and the SSE trading calendar.
+  implemented cash dividends, official CFFEX close archives, BaoStock close
+  history, CFFEX rules, and the SSE trading calendar. Multi-request collection
+  uses randomized polite delays.
 - `main` never tracks generated JSON. Local data lives in ignored `.data`, with
   `DIVIDENDI_DATA_DIR` exported by the dev shell and Vite development URLs set in
   `.env.development`. Production temporarily checks the `data` branch out at
@@ -54,7 +58,7 @@ not investment advice.
 
 - `nix develop`; `just setup`
 - `just check`; `just test`; `just ci`
-- `just data`; `just history`; `just build`
+- `just data`; `just history`; `just backfill`; `just validate`; `just build`
 
 ## Progress
 
@@ -66,14 +70,18 @@ not investment advice.
   `.data` and tracked development environment variables.
 - [x] Chinese mobile UI with text, current cross-sectional charts, responsive
   empty/error states, and 360/390 px browser QA.
-- [ ] Backfill the rolling window and add selectable trend charts.
-- [ ] Store production JSON in a one-commit orphan `data` branch. Weekend,
+- [x] Backfilled 242 trading-session closes for the rolling window and added
+  on-demand selectable trend charts with 360/390 px browser QA.
+- [x] Store production JSON in a one-commit orphan `data` branch. Weekend,
   holiday, and unchanged runs must make no commit or deployment. Changed data
   replaces that commit with `--force-with-lease`, then deploys once.
+- [x] Added GitHub Pages and scheduled data workflows using the Nix toolchain;
+  production builds stage data without tracking it on `main`.
 - [ ] Review provider attribution/redistribution terms before public launch.
 
-Current stage: generated data has moved out of `main`; historical backfill and
-trend charts are in progress, followed by the `data` branch and CI/Pages.
+Current stage: the static vertical slice is deployed with a rolling EOD data
+branch. Next work is provider-terms review and any product refinements requested
+after real-device use.
 
 ## Working rules
 
