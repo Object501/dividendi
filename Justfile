@@ -23,6 +23,10 @@ data:
 history:
     python3 -m collector update-history
 
+# Rebuild the complete trailing 365-day EOD history with polite random delays.
+backfill:
+    python3 -m collector backfill-history
+
 # Run unit tests.
 test:
     pnpm test
