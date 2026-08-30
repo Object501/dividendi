@@ -1,5 +1,13 @@
 """Shared data collection and validation code."""
 
+from .calendar import (
+    ContractMonth,
+    active_contract_codes,
+    active_contract_months,
+    cffex_expiry,
+    remaining_trading_days,
+    trading_sessions,
+)
 from .documents import (
     FuturesMetric,
     LatestDocument,
@@ -25,12 +33,16 @@ from .instruments import (
 
 __all__ = [
     "CashDividend",
+    "ContractMonth",
     "FuturesMetric",
     "FuturesProduct",
     "InstrumentCatalog",
     "LatestDocument",
     "MarketInstrument",
     "StockMetric",
+    "active_contract_codes",
+    "active_contract_months",
+    "cffex_expiry",
     "daily_discount_points",
     "discount_points",
     "implemented_dividend_per_share",
@@ -38,6 +50,8 @@ __all__ = [
     "load_latest_document",
     "parse_instruments",
     "parse_latest_document",
+    "remaining_trading_days",
     "retain_rolling_window",
+    "trading_sessions",
     "trailing_dividend_yield",
 ]
