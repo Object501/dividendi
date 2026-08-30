@@ -190,7 +190,9 @@ dd {
 
 .metric-card,
 .stock-list,
-.method-note {
+.method-note,
+.history-card,
+.history-gate {
   background: var(--paper);
   border: 1px solid rgb(23 49 44 / 9%);
   box-shadow: var(--shadow);
@@ -412,6 +414,156 @@ dd {
   line-height: 1.7;
 }
 
+.history-gate,
+.history-card {
+	padding: 1.15rem;
+	border-radius: 1.25rem;
+}
+
+.history-gate > p {
+	color: var(--muted);
+	font-size: 0.84rem;
+	line-height: 1.65;
+}
+
+.primary-button {
+	width: 100%;
+	min-height: 3rem;
+	margin-top: 1rem;
+	color: #f8f7ef;
+	background: var(--green);
+	border: 0;
+	border-radius: 0.8rem;
+	font: inherit;
+	font-size: 0.84rem;
+	font-weight: 720;
+	cursor: pointer;
+}
+
+.primary-button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.primary-button:focus-visible,
+.segmented-control button:focus-visible,
+.range-control button:focus-visible,
+.history-controls select:focus-visible {
+	outline: 3px solid var(--lime);
+	outline-offset: 2px;
+}
+
+.segmented-control,
+.range-control {
+	display: grid;
+	min-width: 0;
+	margin: 0;
+	padding: 0.25rem;
+	background: #eef0e8;
+	border: 0;
+	border-radius: 0.8rem;
+}
+
+.segmented-control {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.segmented-control button,
+.range-control button {
+	min-height: 2.75rem;
+	padding: 0 0.5rem;
+	color: var(--muted);
+	background: transparent;
+	border: 0;
+	border-radius: 0.62rem;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 680;
+	cursor: pointer;
+}
+
+.segmented-control button[aria-pressed="true"],
+.range-control button[aria-pressed="true"] {
+	color: var(--ink);
+	background: var(--paper);
+	box-shadow: 0 2px 10px rgb(23 49 44 / 8%);
+}
+
+.history-controls {
+	display: grid;
+	gap: 0.9rem;
+	margin-top: 1rem;
+}
+
+.history-controls label {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.history-controls label > span {
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 680;
+}
+
+.history-controls select {
+	width: 100%;
+	min-height: 2.75rem;
+	padding: 0 2.4rem 0 0.75rem;
+	color: var(--ink);
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 0.7rem;
+	font: inherit;
+	font-size: 0.8rem;
+}
+
+.range-control {
+	grid-template-columns: repeat(3, 1fr);
+	align-self: end;
+}
+
+.history-summary {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.3rem 0.8rem;
+	margin-top: 1.35rem;
+}
+
+.history-summary p {
+	align-self: end;
+	color: var(--muted);
+	font-size: 0.74rem;
+	font-weight: 680;
+}
+
+.history-summary strong {
+	grid-row: span 2;
+	font-size: 1.35rem;
+	letter-spacing: -0.03em;
+}
+
+.history-summary span,
+.history-hint,
+.history-empty {
+	color: var(--muted);
+	font-size: 0.68rem;
+	line-height: 1.55;
+}
+
+.history-empty {
+	padding: 2.5rem 0;
+	text-align: center;
+}
+
+.history-hint {
+	margin-top: 0.5rem;
+}
+
+.metric-chart--history {
+	height: 15rem;
+}
+
 .bottom-nav {
   position: fixed;
   z-index: 10;
@@ -419,7 +571,7 @@ dd {
   bottom: max(0.8rem, env(safe-area-inset-bottom));
   left: 1rem;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   width: min(calc(100% - 2rem), 28rem);
   min-height: 4rem;
   margin: 0 auto;
@@ -467,6 +619,10 @@ dd {
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+	.history-controls {
+		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
+	}
 
   .bottom-nav {
     position: static;

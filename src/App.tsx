@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 
 import { instruments } from "./config";
 import type { FuturesMetric } from "./data";
+import { HistorySection } from "./HistorySection";
 import { type LatestDataState, useLatestData } from "./useLatestData";
 
 const MetricBarChart = lazy(() => import("./MetricBarChart"));
@@ -264,6 +265,8 @@ export function App() {
 					) : null}
 				</section>
 
+				<HistorySection latest={latest} />
+
 				<aside className="method-note" aria-labelledby="method-title">
 					<p className="eyebrow">口径说明</p>
 					<h2 id="method-title">先看数据日期，再看数字</h2>
@@ -282,6 +285,10 @@ export function App() {
 				<a href="#dividends">
 					<span aria-hidden="true">%</span>
 					股息率
+				</a>
+				<a href="#history">
+					<span aria-hidden="true">⌁</span>
+					历史趋势
 				</a>
 			</nav>
 		</div>
