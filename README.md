@@ -1,9 +1,11 @@
-# dividendi
+# dividendi [![CI](https://github.com/Object501/dividendi/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/Object501/dividendi/actions/workflows/pages.yml)
 
 一个面向手机的静态网站，用统一、可复核的口径查看：
 
 - 当前在交易的中证 1000 股指期货（IM）各合约贴水和日化贴水；
 - 自选 A 股过去 365 天已实施现金分红对应的税前股息率。
+
+在线站点：[object501.github.io/dividendi](https://object501.github.io/dividendi/)。
 
 标的清单不是写死在程序里，而是统一读取
 [`config/instruments.json`](config/instruments.json)。目前包含建设银行、工商银行、中国神华、
