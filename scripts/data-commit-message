@@ -16,7 +16,7 @@ fi
 files=()
 for filename in "$@"; do
 	case "$filename" in
-	latest.json | history.json) ;;
+	history.json) ;;
 	*)
 		echo "unsupported data file: $filename" >&2
 		exit 2

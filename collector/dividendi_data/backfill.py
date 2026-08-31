@@ -90,17 +90,13 @@ def assemble_backfilled_history(
     end: date,
     futures_closes: tuple[HistoricalFuturesClose, ...],
     spot_closes: Mapping[tuple[str, str], tuple[HistoricalSpotClose, ...]],
-    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]] | None,
-    *,
-    dividend_basis: Mapping[tuple[str, str], StockMetric] | None = None,
+    dividends: Mapping[tuple[str, str], tuple[CashDividend, ...]],
 ) -> HistoryDocument:
     """Build deterministic EOD documents for every trading session."""
 
     sessions = trading_sessions(start, end)
     if not sessions:
         raise ValueError("历史回填区间没有交易日")
-    if dividends is None and (len(sessions) != 1 or dividend_basis is None):
-        raise ValueError("多交易日历史必须提供完整分红记录")
     futures_by_key = {(item.market_date, item.contract_code): item for item in futures_closes}
     if len(futures_by_key) != len(futures_closes):
         raise ValueError("中金所历史收盘包含重复合约日期")
@@ -152,22 +148,12 @@ def assemble_backfilled_history(
                 key,
                 exact=False,
             )
-            if dividends is not None:
-                if key not in dividends:
-                    raise ValueError(f"巨潮分红缺少股票 {stock.market}:{stock.code}")
-                dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
-                completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
-                completed_year = None if completed is None else completed[0]
-                completed_dividend = None if completed is None else completed[1]
-                dividend_source = CNINFO_SOURCE
-            else:
-                cached = dividend_basis.get(key) if dividend_basis is not None else None
-                if cached is None:
-                    raise ValueError(f"缓存分红缺少股票 {stock.market}:{stock.code}")
-                dividend_per_share = cached.implemented_dividend_per_share
-                completed_year = cached.completed_fiscal_year
-                completed_dividend = cached.completed_fiscal_year_dividend_per_share
-                dividend_source = cached.dividend_source
+            if key not in dividends:
+                raise ValueError(f"巨潮分红缺少股票 {stock.market}:{stock.code}")
+            dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
+            completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
+            completed_year = None if completed is None else completed[0]
+            completed_dividend = None if completed is None else completed[1]
             stock_metrics.append(
                 StockMetric(
                     market=stock.market,
@@ -176,7 +162,7 @@ def assemble_backfilled_history(
                     implemented_dividend_per_share=dividend_per_share,
                     dividend_yield=trailing_dividend_yield(dividend_per_share, latest_price),
                     price_source=BAOSTOCK_HISTORY_SOURCE,
-                    dividend_source=dividend_source,
+                    dividend_source=CNINFO_SOURCE,
                     completed_fiscal_year=completed_year,
                     completed_fiscal_year_dividend_per_share=completed_dividend,
                     completed_fiscal_year_dividend_yield=(

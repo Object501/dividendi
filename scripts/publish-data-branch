@@ -2,14 +2,8 @@
 
 set -euo pipefail
 
-rewrite_message=false
-if [[ ${1:-} == "--rewrite-message" ]]; then
-	rewrite_message=true
-	shift
-fi
-
 if (( $# < 1 || $# > 2 )); then
-	echo "usage: scripts/publish-data-branch [--rewrite-message] DATA_DIRECTORY [REMOTE]" >&2
+	echo "usage: scripts/publish-data-branch DATA_DIRECTORY [REMOTE]" >&2
 	exit 2
 fi
 
@@ -32,29 +26,23 @@ export GIT_DIR=$git_directory
 export GIT_INDEX_FILE=$temporary_directory/index
 export GIT_WORK_TREE=$data_directory
 
-changed_files=()
-if [[ -n "$expected_commit" ]] && git cat-file -e "$expected_commit:latest.json" 2>/dev/null; then
-	changed_files+=(latest.json)
-fi
 if [[ -z "$expected_commit" ]] \
 	|| ! git cat-file -e "$expected_commit:history.json" 2>/dev/null \
 	|| ! cmp -s <(git show "$expected_commit:history.json") "$data_directory/history.json"; then
-	changed_files+=(history.json)
+	changed=true
+	else
+	changed=false
 fi
 
-if (( ${#changed_files[@]} == 0 )); then
-	if [[ $rewrite_message == true ]]; then
-		changed_files=(history.json)
-	else
-		printf 'data unchanged\n'
-		exit 0
-	fi
+if [[ $changed == false ]]; then
+	printf 'data unchanged\n'
+	exit 0
 fi
 
 git read-tree --empty
 git add -- history.json
 tree=$(git write-tree)
-commit=$(bash "$script_directory/data-commit-message" "${changed_files[@]}" | git commit-tree "$tree")
+commit=$(bash "$script_directory/data-commit-message" history.json | git commit-tree "$tree")
 
 git push \
 	"$remote" \

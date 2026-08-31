@@ -39,20 +39,16 @@ from .instruments import (
     load_instruments,
     parse_instruments,
 )
-from .sina import CurrentQuotes, FuturesQuote, SpotQuote, fetch_current_quotes
 
 __all__ = [
     "CashDividend",
     "ContractMonth",
-    "CurrentQuotes",
     "FuturesMetric",
     "FuturesProduct",
-    "FuturesQuote",
     "HistoryDocument",
     "InstrumentCatalog",
     "LatestDocument",
     "MarketInstrument",
-    "SpotQuote",
     "StockMetric",
     "active_contract_codes",
     "active_contract_months",
@@ -60,7 +56,6 @@ __all__ = [
     "daily_discount_points",
     "discount_points",
     "fetch_catalog_dividends",
-    "fetch_current_quotes",
     "fetch_stock_dividends",
     "implemented_dividend_per_share",
     "latest_completed_fiscal_year_dividend",
