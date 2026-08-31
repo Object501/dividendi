@@ -1,0 +1,201 @@
+.history-gate,
+.history-card {
+	padding: 1.15rem;
+	border-radius: 1.25rem;
+}
+
+.history-gate > p {
+	color: var(--muted);
+	font-size: 0.84rem;
+	line-height: 1.65;
+}
+
+.primary-button {
+	width: 100%;
+	min-height: 3rem;
+	margin-top: 1rem;
+	color: var(--button-ink);
+	background: var(--green);
+	border: 0;
+	border-radius: 0.8rem;
+	font: inherit;
+	font-size: 0.84rem;
+	font-weight: 720;
+	cursor: pointer;
+}
+
+.primary-button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.primary-button:focus-visible,
+.segmented-control button:focus-visible,
+.range-control button:focus-visible,
+.history-controls select:focus-visible {
+	outline: 3px solid var(--lime);
+	outline-offset: 2px;
+}
+
+.segmented-control,
+.range-control {
+	display: grid;
+	min-width: 0;
+	margin: 0;
+	padding: 0.25rem;
+	background: var(--control-bg);
+	border: 0;
+	border-radius: 0.8rem;
+}
+
+.segmented-control {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.segmented-control button,
+.range-control button {
+	min-height: 2.75rem;
+	padding: 0 0.5rem;
+	color: var(--muted);
+	background: transparent;
+	border: 0;
+	border-radius: 0.62rem;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 680;
+	cursor: pointer;
+}
+
+.segmented-control button[aria-pressed="true"],
+.range-control button[aria-pressed="true"] {
+	color: var(--ink);
+	background: var(--paper);
+	box-shadow: var(--control-shadow);
+}
+
+.segmented-control button:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+.dividend-basis {
+	display: grid;
+	gap: 0.65rem;
+	margin-top: 1rem;
+	padding: 0.8rem;
+	background: var(--surface-subtle);
+	border-radius: 0.9rem;
+}
+
+.dividend-basis > div {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.dividend-basis strong {
+	font-size: 0.76rem;
+}
+
+.dividend-basis span {
+	color: var(--muted);
+	font-size: 0.65rem;
+	line-height: 1.45;
+}
+
+.dividend-basis__control {
+	background: var(--paper);
+}
+
+.dividend-basis__control button[aria-pressed="true"] {
+	background: var(--control-bg);
+}
+
+.history-controls {
+	display: grid;
+	gap: 0.9rem;
+	margin-top: 1rem;
+}
+
+.history-controls label {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.history-controls label > span {
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 680;
+}
+
+.history-controls select {
+	width: 100%;
+	min-height: 2.75rem;
+	padding: 0 2.4rem 0 0.75rem;
+	color: var(--ink);
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 0.7rem;
+	font: inherit;
+	font-size: 0.8rem;
+}
+
+.range-control {
+	grid-template-columns: repeat(3, 1fr);
+	align-self: end;
+}
+
+.history-summary {
+	margin-top: 1.35rem;
+}
+
+.history-summary__values {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.history-summary__values > div {
+	min-width: 0;
+	padding: 0.75rem;
+	background: var(--surface-subtle);
+	border-radius: 0.75rem;
+}
+
+.history-summary dt,
+.history-summary > p {
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 680;
+}
+
+.history-summary dd {
+	margin-top: 0.3rem;
+	font-size: 1.05rem;
+	font-weight: 780;
+	letter-spacing: -0.03em;
+}
+
+.history-summary > p {
+	margin-top: 0.55rem;
+	line-height: 1.55;
+}
+
+.history-hint,
+.history-empty {
+	color: var(--muted);
+	font-size: 0.68rem;
+	line-height: 1.55;
+}
+
+.history-empty {
+	padding: 2.5rem 0;
+	text-align: center;
+}
+
+.history-hint {
+	margin-top: 0.5rem;
+}
+
+.metric-chart--history {
+	height: 17rem;
+}

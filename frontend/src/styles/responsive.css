@@ -1,0 +1,82 @@
+@media (min-width: 48rem) {
+  .app-shell {
+    padding: 2rem 2rem 5rem;
+  }
+
+  .hero {
+    padding: 2rem;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+	.history-controls {
+		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
+	}
+
+	.dividend-basis {
+		grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1fr);
+		align-items: center;
+	}
+
+	.method-note__grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+  .bottom-nav {
+    position: static;
+    margin-top: 2.5rem;
+  }
+}
+
+@media (max-width: 23rem) {
+  .hero h1 {
+    font-size: 1.4rem;
+  }
+
+  .hero__brand {
+    gap: 0.6rem;
+  }
+
+  .brand-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .theme-toggle {
+    padding: 0;
+  }
+
+  .theme-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+	.chart-placeholder {
+		animation: none;
+	}
+}
+
+@keyframes chart-loading {
+	from {
+		background-position: 100% 0;
+	}
+
+	to {
+		background-position: -100% 0;
+	}
+}
