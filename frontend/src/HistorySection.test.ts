@@ -6,7 +6,7 @@ import {
 	fiscalYearTransitions,
 	futuresPoints,
 	stockPoints,
-} from "./HistorySection";
+} from "./historySeries";
 import { parseMarketSnapshot } from "./marketSnapshotCodec";
 
 const snapshot = parseMarketSnapshot(snapshotFixture, instruments);

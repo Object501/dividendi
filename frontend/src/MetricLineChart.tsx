@@ -6,10 +6,11 @@ import {
 	MarkLineComponent,
 	TooltipComponent,
 } from "echarts/components";
-import { init, use } from "echarts/core";
+import { use } from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 
+import { mountResponsiveChart } from "./chartLifecycle";
 import { chartPalette } from "./chartTheme";
 import { useTheme } from "./theme";
 
@@ -73,137 +74,131 @@ export default function MetricLineChart({
 		}
 
 		const palette = chartPalette(theme);
-		const chart = init(container.current, undefined, { renderer: "svg" });
-		chart.setOption({
-			animationDuration: 320,
-			aria: {
-				description,
-				enabled: true,
-			},
-			grid: {
-				bottom: 28,
-				containLabel: true,
-				left: 4,
-				right: 8,
-				top: 48,
-			},
-			legend: {
-				data: [metricLabel, priceLabel],
-				itemHeight: 8,
-				itemWidth: 18,
-				textStyle: { color: palette.label, fontSize: 10 },
-				top: 4,
-			},
-			tooltip: {
-				backgroundColor: palette.tooltipBackground,
-				borderColor: palette.tooltipBorder,
-				textStyle: { color: palette.tooltipText },
-				trigger: "axis",
-			},
-			xAxis: {
-				axisLabel: {
-					color: palette.axis,
-					fontSize: 10,
-					formatter: shortDate,
-					hideOverlap: true,
+		return mountResponsiveChart(container.current, (chart) =>
+			chart.setOption({
+				animationDuration: 320,
+				aria: {
+					description,
+					enabled: true,
 				},
-				axisLine: { lineStyle: { color: palette.axisLine } },
-				axisTick: { show: false },
-				boundaryGap: false,
-				data: data.map((item) => item.date),
-				type: "category",
-			},
-			yAxis: [
-				{
-					axisLabel: { color: palette.positive, fontSize: 10 },
-					axisLine: { show: false },
-					name: metricUnit,
-					nameTextStyle: { color: palette.positive, fontSize: 10 },
-					position: "left",
-					scale: true,
-					splitLine: { lineStyle: { color: palette.splitLine } },
-					type: "value",
+				grid: {
+					bottom: 28,
+					containLabel: true,
+					left: 4,
+					right: 8,
+					top: 48,
 				},
-				{
-					axisLabel: { color: palette.secondary, fontSize: 10 },
-					axisLine: { show: false },
-					name: priceUnit,
-					nameTextStyle: { color: palette.secondary, fontSize: 10 },
-					position: "right",
-					scale: true,
-					splitLine: { show: false },
-					type: "value",
+				legend: {
+					data: [metricLabel, priceLabel],
+					itemHeight: 8,
+					itemWidth: 18,
+					textStyle: { color: palette.label, fontSize: 10 },
+					top: 4,
 				},
-			],
-			series: [
-				{
-					areaStyle: { color: palette.area },
-					data: data.map((item) => item.metricValue),
-					itemStyle: { color: palette.positive },
-					lineStyle: { color: palette.positive, width: 2 },
-					markLine: {
-						data: [
-							{
-								label: { show: false },
-								lineStyle: {
-									color: palette.zeroLine,
-									type: "dashed",
-									width: 1,
-								},
-								yAxis: 0,
-							},
-							...fiscalYearTransitions.map((transition) => ({
-								label: {
-									color: palette.annotation,
-									fontSize: 9,
-									formatter: `${transition.toFiscalYear}财年`,
-									position: "insideEndTop",
-									show: true,
-								},
-								lineStyle: {
-									color: palette.annotation,
-									type: "dashed",
-									width: 1.2,
-								},
-								name: `${transition.fromFiscalYear} 财年 → ${transition.toFiscalYear} 财年`,
-								xAxis: transition.date,
-							})),
-						],
-						silent: true,
-						symbol: "none",
+				tooltip: {
+					backgroundColor: palette.tooltipBackground,
+					borderColor: palette.tooltipBorder,
+					textStyle: { color: palette.tooltipText },
+					trigger: "axis",
+				},
+				xAxis: {
+					axisLabel: {
+						color: palette.axis,
+						fontSize: 10,
+						formatter: shortDate,
+						hideOverlap: true,
 					},
-					showSymbol: false,
-					smooth: 0.12,
-					name: metricLabel,
-					tooltip: {
-						valueFormatter: (value: unknown) =>
-							`${numberFormat.format(Number(value))}${metricUnit}`,
-					},
-					type: "line",
+					axisLine: { lineStyle: { color: palette.axisLine } },
+					axisTick: { show: false },
+					boundaryGap: false,
+					data: data.map((item) => item.date),
+					type: "category",
 				},
-				{
-					data: data.map((item) => item.closePrice),
-					itemStyle: { color: palette.secondary },
-					lineStyle: { color: palette.secondary, width: 1.8 },
-					name: priceLabel,
-					showSymbol: false,
-					smooth: 0.12,
-					tooltip: {
-						valueFormatter: (value: unknown) =>
-							`${numberFormat.format(Number(value))}${priceUnit}`,
+				yAxis: [
+					{
+						axisLabel: { color: palette.positive, fontSize: 10 },
+						axisLine: { show: false },
+						name: metricUnit,
+						nameTextStyle: { color: palette.positive, fontSize: 10 },
+						position: "left",
+						scale: true,
+						splitLine: { lineStyle: { color: palette.splitLine } },
+						type: "value",
 					},
-					type: "line",
-					yAxisIndex: 1,
-				},
-			],
-		});
-
-		const observer = new ResizeObserver(() => chart.resize());
-		observer.observe(container.current);
-		return () => {
-			observer.disconnect();
-			chart.dispose();
-		};
+					{
+						axisLabel: { color: palette.secondary, fontSize: 10 },
+						axisLine: { show: false },
+						name: priceUnit,
+						nameTextStyle: { color: palette.secondary, fontSize: 10 },
+						position: "right",
+						scale: true,
+						splitLine: { show: false },
+						type: "value",
+					},
+				],
+				series: [
+					{
+						areaStyle: { color: palette.area },
+						data: data.map((item) => item.metricValue),
+						itemStyle: { color: palette.positive },
+						lineStyle: { color: palette.positive, width: 2 },
+						markLine: {
+							data: [
+								{
+									label: { show: false },
+									lineStyle: {
+										color: palette.zeroLine,
+										type: "dashed",
+										width: 1,
+									},
+									yAxis: 0,
+								},
+								...fiscalYearTransitions.map((transition) => ({
+									label: {
+										color: palette.annotation,
+										fontSize: 9,
+										formatter: `${transition.toFiscalYear}财年`,
+										position: "insideEndTop",
+										show: true,
+									},
+									lineStyle: {
+										color: palette.annotation,
+										type: "dashed",
+										width: 1.2,
+									},
+									name: `${transition.fromFiscalYear} 财年 → ${transition.toFiscalYear} 财年`,
+									xAxis: transition.date,
+								})),
+							],
+							silent: true,
+							symbol: "none",
+						},
+						showSymbol: false,
+						smooth: 0.12,
+						name: metricLabel,
+						tooltip: {
+							valueFormatter: (value: unknown) =>
+								`${numberFormat.format(Number(value))}${metricUnit}`,
+						},
+						type: "line",
+					},
+					{
+						data: data.map((item) => item.closePrice),
+						itemStyle: { color: palette.secondary },
+						lineStyle: { color: palette.secondary, width: 1.8 },
+						name: priceLabel,
+						showSymbol: false,
+						smooth: 0.12,
+						tooltip: {
+							valueFormatter: (value: unknown) =>
+								`${numberFormat.format(Number(value))}${priceUnit}`,
+						},
+						type: "line",
+						yAxisIndex: 1,
+					},
+				],
+			}),
+		);
 	}, [
 		data,
 		description,
