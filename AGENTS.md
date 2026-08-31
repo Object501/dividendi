@@ -58,6 +58,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - [x] Chinese mobile UI, default-dark theme, current tables/charts, and selectable dual-axis history with fiscal-year transition markers.
 - [x] Rolling EOD data in a one-commit `data` branch; idempotent scheduled publication is decoupled from Pages and works locally through `.data`.
 - [x] Browser-side delayed quotes and local persistence; a weekday EOD workflow publishes only rolling history.
+- [x] Provider parsing, refresh orchestration, history transforms, UI modules, and styles are separated and tested.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
 - [ ] Review provider attribution and redistribution terms before public launch.
 
