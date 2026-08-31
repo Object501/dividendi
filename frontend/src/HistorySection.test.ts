@@ -58,9 +58,11 @@ describe("history chart points", () => {
 				index === 0
 					? {
 							...stock,
-							completedFiscalYear: 2025,
-							completedFiscalYearDividendPerShare: 0.5,
-							completedFiscalYearDividendYield: 0.05,
+							completedFiscalYear: {
+								dividendPerShare: 0.5,
+								dividendYield: 0.05,
+								fiscalYear: 2025,
+							},
 						}
 					: stock,
 			),

@@ -33,6 +33,7 @@ from .instruments import (
     parse_instruments,
 )
 from .market_snapshot import (
+    CompletedFiscalYearMetric,
     FuturesMetric,
     MarketSnapshot,
     StockMetric,
@@ -42,6 +43,7 @@ from .market_snapshot import (
 
 __all__ = [
     "CashDividend",
+    "CompletedFiscalYearMetric",
     "ContractMonth",
     "FuturesMetric",
     "FuturesProduct",

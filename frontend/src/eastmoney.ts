@@ -462,11 +462,14 @@ export function mergeEastmoneyQuotes(
 			throw new Error(`浏览器行情缺少股票 ${previous.market}:${previous.code}`);
 		}
 		const completedMetric =
-			previous.completedFiscalYearDividendPerShare === undefined
+			previous.completedFiscalYear === undefined
 				? {}
 				: {
-						completedFiscalYearDividendYield:
-							previous.completedFiscalYearDividendPerShare / quote.price,
+						completedFiscalYear: {
+							...previous.completedFiscalYear,
+							dividendYield:
+								previous.completedFiscalYear.dividendPerShare / quote.price,
+						},
 					};
 		return {
 			...previous,

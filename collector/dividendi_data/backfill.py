@@ -39,6 +39,7 @@ from .formulas import (
 from .history import retain_rolling_window
 from .instruments import InstrumentCatalog, load_instruments
 from .market_snapshot import (
+    CompletedFiscalYearMetric,
     FuturesMetric,
     MarketSnapshot,
     StockMetric,
@@ -152,8 +153,15 @@ def assemble_backfilled_history(
                 raise ValueError(f"巨潮分红缺少股票 {stock.market}:{stock.code}")
             dividend_per_share = implemented_dividend_per_share(dividends[key], market_date)
             completed = latest_completed_fiscal_year_dividend(dividends[key], market_date)
-            completed_year = None if completed is None else completed[0]
-            completed_dividend = None if completed is None else completed[1]
+            completed_metric = (
+                None
+                if completed is None
+                else CompletedFiscalYearMetric(
+                    fiscal_year=completed[0],
+                    dividend_per_share=completed[1],
+                    dividend_yield=trailing_dividend_yield(completed[1], latest_price),
+                )
+            )
             stock_metrics.append(
                 StockMetric(
                     market=stock.market,
@@ -163,13 +171,7 @@ def assemble_backfilled_history(
                     dividend_yield=trailing_dividend_yield(dividend_per_share, latest_price),
                     price_source=BAOSTOCK_HISTORY_SOURCE,
                     dividend_source=CNINFO_SOURCE,
-                    completed_fiscal_year=completed_year,
-                    completed_fiscal_year_dividend_per_share=completed_dividend,
-                    completed_fiscal_year_dividend_yield=(
-                        None
-                        if completed_dividend is None
-                        else trailing_dividend_yield(completed_dividend, latest_price)
-                    ),
+                    completed_fiscal_year=completed_metric,
                 )
             )
 

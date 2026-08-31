@@ -30,6 +30,13 @@ class FuturesMetric:
 
 
 @dataclass(frozen=True, slots=True)
+class CompletedFiscalYearMetric:
+    fiscal_year: int
+    dividend_per_share: Decimal
+    dividend_yield: Decimal
+
+
+@dataclass(frozen=True, slots=True)
 class StockMetric:
     market: str
     code: str
@@ -38,9 +45,7 @@ class StockMetric:
     dividend_yield: Decimal
     price_source: str
     dividend_source: str
-    completed_fiscal_year: int | None = None
-    completed_fiscal_year_dividend_per_share: Decimal | None = None
-    completed_fiscal_year_dividend_yield: Decimal | None = None
+    completed_fiscal_year: CompletedFiscalYearMetric | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,12 +100,12 @@ def market_snapshot_json(document: MarketSnapshot) -> dict[str, object]:
                     {}
                     if metric.completed_fiscal_year is None
                     else {
-                        "completedFiscalYear": metric.completed_fiscal_year,
+                        "completedFiscalYear": metric.completed_fiscal_year.fiscal_year,
                         "completedFiscalYearDividendPerShare": _decimal_string(
-                            metric.completed_fiscal_year_dividend_per_share  # type: ignore[arg-type]
+                            metric.completed_fiscal_year.dividend_per_share
                         ),
                         "completedFiscalYearDividendYield": _decimal_string(
-                            metric.completed_fiscal_year_dividend_yield  # type: ignore[arg-type]
+                            metric.completed_fiscal_year.dividend_yield
                         ),
                     }
                 ),
@@ -216,6 +221,16 @@ def _stock_metric(value: object, path: str) -> StockMetric:
         value is not None for value in completed_fields
     ):
         raise ValueError(f"{path} 的完整财年分红字段必须同时提供")
+    if completed_fiscal_year is None:
+        completed_metric = None
+    else:
+        if completed_dividend is None or completed_yield is None:
+            raise ValueError(f"{path} 的完整财年分红字段必须同时提供")
+        completed_metric = CompletedFiscalYearMetric(
+            fiscal_year=completed_fiscal_year,
+            dividend_per_share=completed_dividend,
+            dividend_yield=completed_yield,
+        )
     metric = StockMetric(
         market=_string(record, "market", path),
         code=_string(record, "code", path),
@@ -224,17 +239,15 @@ def _stock_metric(value: object, path: str) -> StockMetric:
         dividend_yield=_decimal(record, "dividendYield", path),
         price_source=_string(record, "priceSource", path),
         dividend_source=_string(record, "dividendSource", path),
-        completed_fiscal_year=completed_fiscal_year,
-        completed_fiscal_year_dividend_per_share=completed_dividend,
-        completed_fiscal_year_dividend_yield=completed_yield,
+        completed_fiscal_year=completed_metric,
     )
     if metric.latest_price <= 0:
         raise ValueError(f"{path}.latestPrice 必须大于零")
     if metric.implemented_dividend_per_share < 0:
         raise ValueError(f"{path}.implementedDividendPerShare 不能为负数")
     if (
-        metric.completed_fiscal_year_dividend_per_share is not None
-        and metric.completed_fiscal_year_dividend_per_share < 0
+        metric.completed_fiscal_year is not None
+        and metric.completed_fiscal_year.dividend_per_share < 0
     ):
         raise ValueError(f"{path}.completedFiscalYearDividendPerShare 不能为负数")
     if metric.dividend_yield != trailing_dividend_yield(
@@ -242,10 +255,10 @@ def _stock_metric(value: object, path: str) -> StockMetric:
     ):
         raise ValueError(f"{path}.dividendYield 与分红和价格不一致")
     if (
-        metric.completed_fiscal_year_dividend_per_share is not None
-        and metric.completed_fiscal_year_dividend_yield
+        metric.completed_fiscal_year is not None
+        and metric.completed_fiscal_year.dividend_yield
         != trailing_dividend_yield(
-            metric.completed_fiscal_year_dividend_per_share,
+            metric.completed_fiscal_year.dividend_per_share,
             metric.latest_price,
         )
     ):

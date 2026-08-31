@@ -50,9 +50,11 @@ const baseline: MarketSnapshot = {
 	stocks: [
 		{
 			code: "601939",
-			completedFiscalYear: 2025,
-			completedFiscalYearDividendPerShare: 0.5,
-			completedFiscalYearDividendYield: 0.0625,
+			completedFiscalYear: {
+				dividendPerShare: 0.5,
+				dividendYield: 0.0625,
+				fiscalYear: 2025,
+			},
 			dividendSource: "cninfo",
 			dividendYield: 0.05,
 			implementedDividendPerShare: 0.4,
@@ -149,7 +151,11 @@ describe("东方财富浏览器行情", () => {
 			source: "eastmoney",
 		});
 		expect(merged.stocks[0]).toMatchObject({
-			completedFiscalYearDividendYield: 0.05,
+			completedFiscalYear: {
+				dividendPerShare: 0.5,
+				dividendYield: 0.05,
+				fiscalYear: 2025,
+			},
 			dividendYield: 0.04,
 			latestPrice: 10,
 			priceSource: "eastmoney",

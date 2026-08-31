@@ -89,7 +89,7 @@ export function stockPoints(
 		);
 		const metricValue =
 			basis === "reference"
-				? metric?.completedFiscalYearDividendYield
+				? metric?.completedFiscalYear?.dividendYield
 				: metric?.dividendYield;
 		return metric === undefined || metricValue === undefined
 			? []
@@ -99,7 +99,7 @@ export function stockPoints(
 						date: snapshot.marketDate,
 						...(basis === "reference" &&
 						metric.completedFiscalYear !== undefined
-							? { fiscalYear: metric.completedFiscalYear }
+							? { fiscalYear: metric.completedFiscalYear.fiscalYear }
 							: {}),
 						metricValue: metricValue * 100,
 					},
@@ -187,9 +187,7 @@ function HistoryExplorer({
 	);
 	const [rangeDays, setRangeDays] = useState<RangeDays>(92);
 	const hasReferenceData = history.snapshots.some((snapshot) =>
-		snapshot.stocks.some(
-			(stock) => stock.completedFiscalYearDividendYield !== undefined,
-		),
+		snapshot.stocks.some((stock) => stock.completedFiscalYear !== undefined),
 	);
 	const [dividendBasis, setDividendBasis] = useState<DividendBasis>(
 		hasReferenceData ? "reference" : "trailing",
