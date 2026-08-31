@@ -47,9 +47,16 @@ function statusCopy(state: LatestDataState): string {
 		return "暂无可用数据，请稍后再试";
 	}
 	const updatedAt = timeFormat.format(new Date(state.data.fetchedAt));
-	return state.status === "error"
-		? `浏览器更新失败：${state.reason}；显示本机保存的 ${updatedAt} 数据`
-		: `行情日 ${state.data.marketDate} · ${updatedAt} 更新（约延迟 15 分钟）`;
+	if (state.status === "error") {
+		return `浏览器更新失败：${state.reason}；显示 ${updatedAt} 的上次有效数据`;
+	}
+	if (state.source === "browser") {
+		return `行情日 ${state.data.marketDate} · ${updatedAt} 更新（约延迟 15 分钟）`;
+	}
+	if (state.source === "history") {
+		return `行情日 ${state.data.marketDate} · ${updatedAt} 日终基准`;
+	}
+	return `行情日 ${state.data.marketDate} · ${updatedAt} 本机缓存，正在更新`;
 }
 
 function valueTone(value: number): string {

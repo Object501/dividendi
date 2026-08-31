@@ -8,58 +8,36 @@ import {
 	type EastmoneyContract,
 	fetchEastmoneyQuotes,
 	mergeEastmoneyQuotes,
-	snapshotPhase,
 } from "./eastmoney";
 import { loadHistoryData } from "./historyData";
+import {
+	isChineseMarketRefreshWindow,
+	shanghaiDate,
+	tradingDayPhase,
+} from "./marketTime";
 import { fetchTradingCalendar, type TradingCalendar } from "./tradingCalendar";
 
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const MINIMUM_REFRESH_GAP_MS = 5 * 60 * 1000;
-const marketClock = new Intl.DateTimeFormat("en-CA", {
-	hour: "2-digit",
-	hour12: false,
-	minute: "2-digit",
-	timeZone: "Asia/Shanghai",
-	weekday: "short",
-});
-const marketDate = new Intl.DateTimeFormat("en-CA", {
-	day: "2-digit",
-	month: "2-digit",
-	timeZone: "Asia/Shanghai",
-	year: "numeric",
-});
-
 export type LatestDataState =
 	| { readonly status: "loading"; readonly data: null }
-	| { readonly status: "ready"; readonly data: LatestData }
+	| {
+			readonly status: "ready";
+			readonly data: LatestData;
+			readonly source: LatestDataSource;
+	  }
 	| {
 			readonly status: "error";
 			readonly data: LatestData | null;
 			readonly reason: string;
+			readonly source: LatestDataSource | null;
 	  };
 
-export function isChineseMarketRefreshWindow(now: Date): boolean {
-	const parts = Object.fromEntries(
-		marketClock
-			.formatToParts(now)
-			.filter((part) => part.type !== "literal")
-			.map((part) => [part.type, part.value]),
-	);
-	if (parts.weekday === "Sat" || parts.weekday === "Sun") {
-		return false;
-	}
-	const minutes = Number(parts.hour) * 60 + Number(parts.minute);
-	return minutes >= 9 * 60 && minutes <= 16 * 60;
-}
+export type LatestDataSource = "browser" | "history" | "local";
 
-function currentMarketDate(now: Date): string {
-	const parts = Object.fromEntries(
-		marketDate
-			.formatToParts(now)
-			.filter((part) => part.type !== "literal")
-			.map((part) => [part.type, part.value]),
-	);
-	return `${parts.year}-${parts.month}-${parts.day}`;
+interface LastGoodData {
+	readonly data: LatestData;
+	readonly source: LatestDataSource;
 }
 
 function storedSnapshot(): LatestData | null {
@@ -90,95 +68,151 @@ export function useLatestData(): LatestDataState {
 	const [state, setState] = useState<LatestDataState>(() =>
 		initial.current === null
 			? { status: "loading", data: null }
-			: { status: "ready", data: initial.current as LatestData },
+			: {
+					status: "ready",
+					data: initial.current as LatestData,
+					source: "local",
+				},
 	);
 	const baseline = useRef<LatestData | null>(null);
 	const calendar = useRef<TradingCalendar | null>(null);
 	const contracts = useRef<readonly EastmoneyContract[] | null>(null);
 	const contractsDate = useRef<string | null>(null);
 	const historyRequestDate = useRef<string | null>(null);
-	const lastGood = useRef<LatestData | null>(initial.current ?? null);
+	const lastGood = useRef<LastGoodData | null>(
+		initial.current === null || initial.current === undefined
+			? null
+			: { data: initial.current, source: "local" },
+	);
 	const lastAttempt = useRef(0);
+	const inFlight = useRef<Promise<void> | null>(null);
+	const activeRequest = useRef<AbortController | null>(null);
+	const mounted = useRef(false);
 
-	const refresh = useCallback(async () => {
+	const refresh = useCallback(() => {
 		const now = Date.now();
+		if (inFlight.current !== null) {
+			if (activeRequest.current?.signal.aborted !== true) {
+				return;
+			}
+			inFlight.current = null;
+			lastAttempt.current = 0;
+		}
 		if (now - lastAttempt.current < MINIMUM_REFRESH_GAP_MS) {
 			return;
 		}
 		lastAttempt.current = now;
-		const today = currentMarketDate(new Date(now));
+		const today = shanghaiDate(new Date(now));
+		const controller = new AbortController();
+		activeRequest.current = controller;
 
-		try {
-			const history = await loadHistoryData(
-				historyRequestDate.current !== null &&
-					historyRequestDate.current !== today,
-			);
-			const daily = history.snapshots.at(-1);
-			if (daily === undefined) {
-				throw new Error("历史数据没有日终快照");
-			}
-			historyRequestDate.current = today;
-			const basisAdvanced =
-				baseline.current === null ||
-				daily.marketDate > baseline.current.marketDate;
-			const shouldAdoptDaily =
-				basisAdvanced &&
-				(lastGood.current === null ||
-					daily.marketDate >= lastGood.current.marketDate);
-			baseline.current = daily;
-			if (shouldAdoptDaily) {
-				lastGood.current = daily;
-				persistSnapshot(daily);
-				setState({ status: "ready", data: daily });
-			}
-		} catch {
-			// A validated local snapshot can still be refreshed with browser quotes.
-		}
-
-		const basis = baseline.current ?? lastGood.current;
-		if (basis === null) {
-			setState({ status: "error", data: null, reason: "无法读取历史基准" });
-			return;
-		}
-
-		try {
+		const request = (async () => {
 			try {
-				calendar.current ??= await fetchTradingCalendar();
-			} catch {
-				throw new Error("休市日历请求失败");
-			}
-			if (contracts.current === null || contractsDate.current !== today) {
-				try {
-					contracts.current = await discoverEastmoneyContracts(instruments);
-				} catch {
-					throw new Error("期货合约目录请求失败");
+				const history = await loadHistoryData(
+					historyRequestDate.current !== null &&
+						historyRequestDate.current !== today,
+				);
+				const daily = history.snapshots.at(-1);
+				if (daily === undefined) {
+					throw new Error("历史数据没有日终快照");
 				}
-				contractsDate.current = today;
+				historyRequestDate.current = today;
+				const basisAdvanced =
+					baseline.current === null ||
+					daily.marketDate > baseline.current.marketDate;
+				const shouldAdoptDaily =
+					basisAdvanced &&
+					(lastGood.current === null ||
+						daily.marketDate >= lastGood.current.data.marketDate);
+				baseline.current = daily;
+				if (shouldAdoptDaily) {
+					lastGood.current = { data: daily, source: "history" };
+					persistSnapshot(daily);
+					if (mounted.current) {
+						setState({ status: "ready", data: daily, source: "history" });
+					}
+				}
+			} catch {
+				// A validated local snapshot can still be refreshed with browser quotes.
 			}
-			const quotes = await fetchEastmoneyQuotes(instruments, contracts.current);
-			const live = mergeEastmoneyQuotes(
-				basis,
-				baseline.current === null ? snapshotPhase(basis.fetchedAt) : "eod",
-				quotes,
-				instruments,
-				calendar.current,
-			);
-			lastGood.current = live;
-			persistSnapshot(live);
-			setState({ status: "ready", data: live });
-		} catch (error) {
-			calendar.current = null;
-			contracts.current = null;
-			contractsDate.current = null;
-			setState({
-				status: "error",
-				data: lastGood.current,
-				reason: errorMessage(error),
-			});
-		}
+
+			const basis = baseline.current ?? lastGood.current?.data ?? null;
+			if (basis === null) {
+				if (mounted.current) {
+					setState({
+						status: "error",
+						data: null,
+						reason: "无法读取历史基准",
+						source: null,
+					});
+				}
+				return;
+			}
+
+			try {
+				try {
+					calendar.current ??= await fetchTradingCalendar({
+						signal: controller.signal,
+					});
+				} catch {
+					throw new Error("休市日历请求失败");
+				}
+				if (contracts.current === null || contractsDate.current !== today) {
+					try {
+						contracts.current = await discoverEastmoneyContracts(instruments, {
+							signal: controller.signal,
+						});
+					} catch {
+						throw new Error("期货合约目录请求失败");
+					}
+					contractsDate.current = today;
+				}
+				const quotes = await fetchEastmoneyQuotes(
+					instruments,
+					contracts.current,
+					{
+						signal: controller.signal,
+					},
+				);
+				const live = mergeEastmoneyQuotes(
+					basis,
+					baseline.current === null ? tradingDayPhase(basis.fetchedAt) : "eod",
+					quotes,
+					instruments,
+					calendar.current,
+				);
+				lastGood.current = { data: live, source: "browser" };
+				persistSnapshot(live);
+				if (mounted.current) {
+					setState({ status: "ready", data: live, source: "browser" });
+				}
+			} catch (error) {
+				if (controller.signal.aborted) {
+					return;
+				}
+				calendar.current = null;
+				contracts.current = null;
+				contractsDate.current = null;
+				if (mounted.current) {
+					setState({
+						status: "error",
+						data: lastGood.current?.data ?? null,
+						reason: errorMessage(error),
+						source: lastGood.current?.source ?? null,
+					});
+				}
+			}
+		})().finally(() => {
+			if (inFlight.current === request) {
+				inFlight.current = null;
+				activeRequest.current = null;
+			}
+		});
+		inFlight.current = request;
 	}, []);
 
 	useEffect(() => {
+		mounted.current = true;
 		void refresh();
 		const refreshIfActive = () => {
 			if (
@@ -194,6 +228,8 @@ export function useLatestData(): LatestDataState {
 		window.addEventListener("online", refreshIfActive);
 
 		return () => {
+			mounted.current = false;
+			activeRequest.current?.abort();
 			window.clearInterval(timer);
 			document.removeEventListener("visibilitychange", refreshIfActive);
 			window.removeEventListener("online", refreshIfActive);
@@ -202,3 +238,5 @@ export function useLatestData(): LatestDataState {
 
 	return state;
 }
+
+export { isChineseMarketRefreshWindow } from "./marketTime";

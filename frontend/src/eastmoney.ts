@@ -4,6 +4,8 @@ import type {
 	MarketInstrument,
 } from "./config";
 import type { LatestData } from "./data";
+import { shanghaiDate, tradingDayPhase } from "./marketTime";
+import { fetchJson } from "./request";
 import {
 	contractExpiry,
 	elapsedTradingDays,
@@ -47,7 +49,10 @@ export interface EastmoneyQuotes {
 	readonly spots: readonly EastmoneyQuote[];
 }
 
-type Fetcher = typeof fetch;
+interface EastmoneyRequestOptions {
+	readonly fetcher?: typeof fetch;
+	readonly signal?: AbortSignal;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -117,46 +122,11 @@ function spotSecurityId(instrument: MarketInstrument): string {
 	return `${providerSpotMarket(instrument.market)}.${instrument.code}`;
 }
 
-function shanghaiDate(epochSeconds: number): string {
-	const parts = new Intl.DateTimeFormat("en", {
-		day: "2-digit",
-		month: "2-digit",
-		timeZone: "Asia/Shanghai",
-		year: "numeric",
-	})
-		.formatToParts(new Date(epochSeconds * 1000))
-		.filter((part) => part.type !== "literal")
-		.map((part) => [part.type, part.value]);
-	const values = Object.fromEntries(parts);
-	return `${values.year}-${values.month}-${values.day}`;
-}
-
 function oldestTimestamp(quotes: readonly EastmoneyQuote[]): number {
 	if (quotes.length === 0) {
 		throw new Error("东方财富没有返回行情");
 	}
 	return Math.min(...quotes.map((quote) => quote.updatedAt));
-}
-
-async function fetchJson(url: string, fetcher: Fetcher): Promise<unknown> {
-	let failure: unknown = new Error("东方财富请求失败");
-	for (let attempt = 0; attempt < 2; attempt += 1) {
-		try {
-			const response = await fetcher(url, { cache: "no-store" });
-			if (!response.ok) {
-				throw new Error(`东方财富请求失败：${response.status}`);
-			}
-			return response.json();
-		} catch (error) {
-			failure = error;
-			if (attempt === 0) {
-				await new Promise((resolve) =>
-					setTimeout(resolve, 250 + Math.random() * 500),
-				);
-			}
-		}
-	}
-	throw failure;
 }
 
 export function parseProductCatalog(
@@ -232,10 +202,14 @@ export function parseContractCatalog(
 
 export async function discoverEastmoneyContracts(
 	instruments: InstrumentConfig,
-	fetcher: Fetcher = fetch,
+	options: EastmoneyRequestOptions = {},
 ): Promise<readonly EastmoneyContract[]> {
+	const { fetcher, signal } = options;
 	const providerProducts = parseProductCatalog(
-		await fetchJson(FUTURES_CATALOG_URL, fetcher),
+		await fetchJson(FUTURES_CATALOG_URL, "东方财富期货品种", {
+			fetcher,
+			signal,
+		}),
 		instruments,
 	);
 	const groups = await Promise.all(
@@ -247,7 +221,13 @@ export async function discoverEastmoneyContracts(
 				throw new Error(`标的配置缺少 ${providerProduct.productCode}`);
 			}
 			const url = `${FUTURES_CONTRACT_URL}${providerProduct.market}_${providerProduct.type}`;
-			return parseContractCatalog(await fetchJson(url, fetcher), product);
+			return parseContractCatalog(
+				await fetchJson(url, `东方财富 ${product.code} 合约`, {
+					fetcher,
+					signal,
+				}),
+				product,
+			);
 		}),
 	);
 	return groups.flat();
@@ -346,8 +326,9 @@ export function parseFuturesQuotes(
 export async function fetchEastmoneyQuotes(
 	instruments: InstrumentConfig,
 	contracts: readonly EastmoneyContract[],
-	fetcher: Fetcher = fetch,
+	options: EastmoneyRequestOptions = {},
 ): Promise<EastmoneyQuotes> {
+	const { fetcher, signal } = options;
 	const spotIds = [...expectedSpotInstruments(instruments).keys()];
 	const spotParameters = new URLSearchParams({
 		fields: "f2,f12,f13,f14,f124",
@@ -365,21 +346,21 @@ export async function fetchEastmoneyQuotes(
 		sort: "asc",
 	});
 	const [spotValue, futuresValue] = await Promise.all([
-		fetchJson(`${SPOT_QUOTE_URL}?${spotParameters}`, fetcher).catch(() => {
-			throw new Error("东方财富现货行情请求失败");
+		fetchJson(`${SPOT_QUOTE_URL}?${spotParameters}`, "东方财富现货行情", {
+			fetcher,
+			signal,
 		}),
 		fetchJson(
 			`${FUTURES_QUOTE_URL}${futuresPath}?${futuresParameters}`,
-			fetcher,
-		).catch(() => {
-			throw new Error("东方财富期货行情请求失败");
-		}),
+			"东方财富期货行情",
+			{ fetcher, signal },
+		),
 	]);
 	const spots = parseSpotQuotes(spotValue, instruments);
 	const futures = parseFuturesQuotes(futuresValue, contracts);
 	const allQuotes = [...spots, ...futures];
 	const marketDates = new Set(
-		allQuotes.map((quote) => shanghaiDate(quote.updatedAt)),
+		allQuotes.map((quote) => shanghaiDate(new Date(quote.updatedAt * 1000))),
 	);
 	if (marketDates.size !== 1) {
 		throw new Error("东方财富行情日期不一致");
@@ -391,23 +372,6 @@ export async function fetchEastmoneyQuotes(
 		marketDate: [...marketDates][0] as string,
 		spots,
 	};
-}
-
-export function snapshotPhase(timestamp: string): TradingDayPhase {
-	const parts = Object.fromEntries(
-		new Intl.DateTimeFormat("en", {
-			hour: "2-digit",
-			hour12: false,
-			minute: "2-digit",
-			timeZone: "Asia/Shanghai",
-		})
-			.formatToParts(new Date(timestamp))
-			.filter((part) => part.type !== "literal")
-			.map((part) => [part.type, part.value]),
-	);
-	return Number(parts.hour) * 60 + Number(parts.minute) >= 15 * 60
-		? "eod"
-		: "intraday";
 }
 
 export function mergeEastmoneyQuotes(
@@ -429,7 +393,7 @@ export function mergeEastmoneyQuotes(
 	const baselineFutures = new Map(
 		baseline.futures.map((metric) => [metric.contractCode, metric]),
 	);
-	const livePhase = snapshotPhase(live.fetchedAt);
+	const livePhase = tradingDayPhase(live.fetchedAt);
 	const futures = live.futures.flatMap((quote) => {
 		const previous = baselineFutures.get(quote.code);
 		const indexLevel = underlyingByProduct.get(quote.productCode ?? "");
@@ -543,7 +507,7 @@ function instrumentsForProducts(
 		);
 		if (
 			quote === undefined ||
-			shanghaiDate(quote.updatedAt) !== live.marketDate
+			shanghaiDate(new Date(quote.updatedAt * 1000)) !== live.marketDate
 		) {
 			throw new Error(`浏览器行情缺少 ${productCode} 标的指数`);
 		}

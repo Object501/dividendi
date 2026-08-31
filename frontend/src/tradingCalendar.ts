@@ -1,3 +1,5 @@
+import { fetchJson } from "./request";
+
 const HOLIDAY_CALENDAR_URL =
 	"https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_ZGXSRL&columns=ALL&pageSize=200&sortColumns=SDATE&sortTypes=-1";
 
@@ -7,8 +9,6 @@ export interface TradingCalendar {
 }
 
 export type TradingDayPhase = "eod" | "intraday";
-
-type Fetcher = typeof fetch;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -69,28 +69,14 @@ export function parseTradingCalendar(value: unknown): TradingCalendar {
 }
 
 export async function fetchTradingCalendar(
-	fetcher: Fetcher = fetch,
+	options: {
+		readonly fetcher?: typeof fetch;
+		readonly signal?: AbortSignal;
+	} = {},
 ): Promise<TradingCalendar> {
-	let failure: unknown = new Error("东方财富休市日历请求失败");
-	for (let attempt = 0; attempt < 2; attempt += 1) {
-		try {
-			const response = await fetcher(HOLIDAY_CALENDAR_URL, {
-				cache: "no-store",
-			});
-			if (!response.ok) {
-				throw new Error(`东方财富休市日历请求失败：${response.status}`);
-			}
-			return parseTradingCalendar(await response.json());
-		} catch (error) {
-			failure = error;
-			if (attempt === 0) {
-				await new Promise((resolve) =>
-					setTimeout(resolve, 250 + Math.random() * 500),
-				);
-			}
-		}
-	}
-	throw failure;
+	return parseTradingCalendar(
+		await fetchJson(HOLIDAY_CALENDAR_URL, "东方财富休市日历", options),
+	);
 }
 
 export function isTradingDay(date: string, calendar: TradingCalendar): boolean {

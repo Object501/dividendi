@@ -1,32 +1,33 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
-import type { HistoryData } from "./data";
-import { loadHistoryData } from "./historyData";
-
-export type HistoryDataState =
-	| { readonly status: "idle" | "loading" | "error"; readonly data: null }
-	| { readonly status: "ready"; readonly data: HistoryData };
+import {
+	getHistoryDataState,
+	type HistoryDataState,
+	loadHistoryData,
+	subscribeHistoryData,
+} from "./historyData";
 
 export function useHistoryData(): {
 	readonly state: HistoryDataState;
 	readonly load: () => Promise<void>;
 } {
-	const [state, setState] = useState<HistoryDataState>({
-		status: "idle",
-		data: null,
-	});
+	const [requested, setRequested] = useState(false);
+	const sharedState = useSyncExternalStore(
+		subscribeHistoryData,
+		getHistoryDataState,
+	);
 
 	const load = useCallback(async () => {
-		setState((current) =>
-			current.status === "ready" ? current : { status: "loading", data: null },
-		);
+		setRequested(true);
 		try {
-			const data = await loadHistoryData();
-			setState({ status: "ready", data });
+			await loadHistoryData();
 		} catch {
-			setState({ status: "error", data: null });
+			// The shared store exposes the error state and supports a later retry.
 		}
 	}, []);
 
-	return { state, load };
+	return {
+		state: requested ? sharedState : { status: "idle", data: null },
+		load,
+	};
 }
