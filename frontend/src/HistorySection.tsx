@@ -137,7 +137,7 @@ export function HistorySection({
 					<p className="eyebrow">历史趋势</p>
 					<h2 id="history-title">回看最近一年</h2>
 				</div>
-				<span className="section-count">按需加载</span>
+				<span className="section-count">按需绘制</span>
 			</div>
 
 			{state.status === "ready" ? (
@@ -145,7 +145,7 @@ export function HistorySection({
 			) : (
 				<div className="history-gate">
 					<p>
-						历史文件约含一年交易日，并包含对应收盘价。需要时再下载，避免拖慢手机首屏。
+						历史文件约含一年交易日，并包含对应收盘价。图表组件仅在需要时加载和绘制。
 					</p>
 					<button
 						className="primary-button"

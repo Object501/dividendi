@@ -41,15 +41,15 @@ function contractDate(value: string): string {
 
 function statusCopy(state: LatestDataState): string {
 	if (state.status === "loading") {
-		return "正在读取最新数据";
+		return "正在读取历史基准与浏览器行情";
 	}
 	if (state.data === null) {
 		return "暂无可用数据，请稍后再试";
 	}
 	const updatedAt = timeFormat.format(new Date(state.data.fetchedAt));
 	return state.status === "error"
-		? `更新失败，显示 ${updatedAt} 的数据`
-		: `行情日 ${state.data.marketDate} · ${updatedAt} 更新`;
+		? `浏览器更新失败：${state.reason}；显示本机保存的 ${updatedAt} 数据`
+		: `行情日 ${state.data.marketDate} · ${updatedAt} 更新（约延迟 15 分钟）`;
 }
 
 function valueTone(value: number): string {

@@ -5,9 +5,10 @@ from __future__ import annotations
 from bisect import bisect_right
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from .archive import (
     DEFAULT_HISTORY_PATH,
@@ -31,7 +32,7 @@ from .documents import (
     FuturesMetric,
     LatestDocument,
     StockMetric,
-    load_latest_document,
+    latest_document_json,
     parse_latest_document,
 )
 from .formulas import (
@@ -44,14 +45,10 @@ from .formulas import (
 )
 from .history import retain_rolling_window
 from .instruments import InstrumentCatalog, load_instruments
-from .refresh import (
-    DEFAULT_LATEST_PATH,
-    SHANGHAI,
-    is_intraday_snapshot,
-    latest_document_json,
-)
 
 MAX_INCREMENTAL_SESSIONS = 10
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+MARKET_CLOSE = time(15)
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,18 +199,29 @@ def assemble_backfilled_history(
     return HistoryDocument(schema_version=1, snapshots=tuple(snapshots))
 
 
+def _latest_completed_market_date(as_of: datetime) -> date:
+    if as_of.tzinfo is None or as_of.utcoffset() is None:
+        raise ValueError("当前时间必须包含时区")
+    local = as_of.astimezone(SHANGHAI)
+    end = local.date() if local.time() >= MARKET_CLOSE else local.date() - timedelta(days=1)
+    sessions = trading_sessions(end - timedelta(days=14), end)
+    if not sessions:
+        raise ValueError("最近 14 天没有可用交易日")
+    return sessions[-1]
+
+
 def backfill_history(
-    latest_path: Path = DEFAULT_LATEST_PATH,
     history_path: Path = DEFAULT_HISTORY_PATH,
     *,
     window_days: int = 365,
+    as_of: datetime | None = None,
 ) -> BackfillResult:
     """Fetch and atomically publish a complete trailing historical window."""
 
     if window_days <= 0:
         raise ValueError("历史回填窗口必须大于零")
     catalog = load_instruments()
-    end = load_latest_document(latest_path, catalog).market_date
+    end = _latest_completed_market_date(datetime.now(UTC) if as_of is None else as_of)
     cutoff = end - timedelta(days=window_days)
     start = cutoff + timedelta(days=1)
     product_codes = tuple(product.code for product in catalog.futures_products)
@@ -233,22 +241,23 @@ def backfill_history(
 
 
 def refresh_history(
-    latest_path: Path = DEFAULT_LATEST_PATH,
     history_path: Path = DEFAULT_HISTORY_PATH,
+    *,
+    as_of: datetime | None = None,
 ) -> bool:
     """Refresh EOD history and safely catch up a short trailing gap."""
 
     catalog = load_instruments()
-    latest = load_latest_document(latest_path, catalog)
-    if is_intraday_snapshot(latest.fetched_at, latest.market_date):
-        raise ValueError("盘中行情不能触发日终历史更新")
-
-    market_date = latest.market_date
+    now = datetime.now(UTC) if as_of is None else as_of
+    market_date = _latest_completed_market_date(now)
     existing = (
         load_history_document(history_path, catalog).snapshots if history_path.exists() else ()
     )
     if existing and existing[-1].market_date > market_date:
         raise ValueError("日终历史不能晚于最新行情")
+    local_date = now.astimezone(SHANGHAI).date()
+    if existing and existing[-1].market_date == market_date and local_date != market_date:
+        return False
     missing_sessions = (
         trading_sessions(existing[-1].market_date + timedelta(days=1), market_date)
         if existing
@@ -261,7 +270,6 @@ def refresh_history(
         )
     start = missing_sessions[0] if missing_sessions else market_date
     product_codes = tuple(product.code for product in catalog.futures_products)
-    dividends = fetch_catalog_dividends(catalog) if start != market_date else None
     daily = assemble_backfilled_history(
         catalog,
         start,
@@ -272,8 +280,7 @@ def refresh_history(
             start - timedelta(days=31),
             market_date,
         ),
-        dividends,
-        dividend_basis={(metric.market, metric.code): metric for metric in latest.stocks},
+        fetch_catalog_dividends(catalog),
     )
     replacement_dates = {*missing_sessions, market_date}
     replacements = tuple(

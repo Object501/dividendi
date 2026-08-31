@@ -19,10 +19,6 @@ check:
 build:
     pnpm build
 
-# Fetch, validate, and atomically publish the latest website data.
-data:
-    python3 -m collector refresh-latest
-
 # Fetch official closes and incrementally update the rolling 365-day history.
 history:
     python3 -m collector update-history
@@ -31,7 +27,7 @@ history:
 backfill:
     python3 -m collector backfill-history
 
-# Validate both generated JSON documents before publishing.
+# Validate the generated history document before publishing.
 validate:
     python3 -m collector validate-data
     DIVIDENDI_CONTRACT_DATA_DIR="${DIVIDENDI_DATA_DIR:-.data}" pnpm validate:data-contract

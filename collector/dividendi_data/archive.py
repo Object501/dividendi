@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,19 +11,15 @@ from pathlib import Path
 from .documents import (
     LatestDocument,
     atomic_write_json,
-    load_latest_document,
+    latest_document_json,
     parse_latest_document,
 )
 from .history import retain_rolling_window
-from .instruments import InstrumentCatalog, load_instruments
-from .refresh import (
-    DEFAULT_DATA_DIR,
-    DEFAULT_LATEST_PATH,
-    is_intraday_snapshot,
-    latest_document_json,
-)
+from .instruments import InstrumentCatalog
 from .schema import validate_history_schema
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_DATA_DIR = Path(os.environ.get("DIVIDENDI_DATA_DIR", REPOSITORY_ROOT / ".data"))
 DEFAULT_HISTORY_PATH = DEFAULT_DATA_DIR / "history.json"
 
 
@@ -79,27 +76,3 @@ def publish_history_document(
     raw_document = history_document_json(document)
     parse_history_document(raw_document, catalog)
     return atomic_write_json(raw_document, path)
-
-
-def update_history(
-    latest_path: Path = DEFAULT_LATEST_PATH,
-    history_path: Path = DEFAULT_HISTORY_PATH,
-) -> bool:
-    """Insert the latest EOD snapshot, replace its date, and prune old dates."""
-
-    catalog = load_instruments()
-    latest = load_latest_document(latest_path, catalog)
-    if is_intraday_snapshot(latest.fetched_at, latest.market_date):
-        raise ValueError("盘中行情不能写入日终历史")
-
-    existing = (
-        load_history_document(history_path, catalog).snapshots if history_path.exists() else ()
-    )
-    snapshots = retain_rolling_window(
-        (
-            *(snapshot for snapshot in existing if snapshot.market_date != latest.market_date),
-            latest,
-        ),
-        lambda snapshot: snapshot.market_date,
-    )
-    return publish_history_document(HistoryDocument(1, snapshots), catalog, history_path)

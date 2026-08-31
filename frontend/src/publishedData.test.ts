@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { instruments } from "./config";
-import { parseHistoryData, parseLatestData } from "./data";
+import { parseHistoryData } from "./data";
 
 const dataDirectory = process.env.DIVIDENDI_CONTRACT_DATA_DIR;
 
@@ -19,12 +19,6 @@ function readPublishedData(filename: string): unknown {
 describe.skipIf(dataDirectory === undefined)(
 	"published data frontend contract",
 	() => {
-		it("parses the exact latest.json selected for publication", () => {
-			expect(
-				parseLatestData(readPublishedData("latest.json"), instruments),
-			).toBeDefined();
-		});
-
 		it("parses the exact history.json selected for publication", () => {
 			expect(
 				parseHistoryData(readPublishedData("history.json"), instruments),

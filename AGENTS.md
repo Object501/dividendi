@@ -18,9 +18,9 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - `购买参考股息率 = 最近完整派息财年的常规每股现金分红 / 当日不复权收盘价`. A fiscal year completes only after its annual dividend is paid. Include its regular annual, interim, and quarterly payouts; exclude special dividends and look-ahead data.
 - Public financial decimals are JSON strings and are recomputed by Python and TypeScript. Publish only complete, common-date data.
 - `schema/public-data-v1.schema.json` is the only public JSON structure. Dev, test, typecheck, contract, and build commands generate untracked validators from it, then run handwritten numeric and semantic checks. For a new schema version, deploy a dual-version reader before changing the collector.
-- `latest.json` changes only when financial values change. `history.json` replaces the same date and retains exactly `(newest - 365 days, newest]` of EOD trading-session closes; never archive intraday data.
-- The browser fetches latest with `no-store`, keeps it in memory, and loads history only on demand. Poll hourly only while visible, online, and within the China-market window, with a shared five-minute minimum gap.
-- Hourly jobs update only `latest.json`; the daily EOD job updates only `history.json`. Fetch CNInfo dividends at most once per market date, then reuse the basis for quote refreshes.
+- Publish only `history.json`; it replaces the same date and retains exactly `(newest - 365 days, newest]` of EOD trading-session closes. Never publish or write back intraday data.
+- The browser loads the newest history snapshot as its basis, downloads Eastmoney quotes, contracts, and published A-share closures, and persists the last valid computed snapshot only in local storage. Poll hourly only while visible, online, and within the China-market window, with a shared five-minute minimum gap.
+- One weekday 19:23 Shanghai job updates only `history.json`; there are no hourly Actions jobs.
 - Data commits use Shanghai timestamps and list only JSON files whose bytes changed; unchanged runs create no commit.
 - EOD may fill at most 10 trailing missing sessions. Larger gaps require a locally reviewed `just backfill`; multi-request collection uses randomized delays.
 
@@ -28,7 +28,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 
 - React + TypeScript + Vite with lazy ECharts; static GitHub Pages only. No runtime backend, accounts, database, browser Python, C++, WASM, or SSR.
 - Keep site source, tests, and frontend configuration under `frontend/`; keep root Node manifests for Nix and pnpm.
-- Python provider adapters cover Sina quotes, CNInfo implemented dividends, official CFFEX closes and rules, BaoStock history, and the SSE calendar.
+- Browser adapters cover Eastmoney's delayed quotes, contract catalog, and holiday calendar. Python adapters cover CNInfo dividends, official CFFEX closes, BaoStock history, and the SSE calendar.
 - `main` never tracks generated JSON. Ignored `.data` supports local development through `DIVIDENDI_DATA_DIR` and `.env.development`.
 - Production reads the one-commit orphan `data` branch through `.env.production`; data updates do not rebuild Pages. Preserve last-good data and allow for the raw-file CDN's five-minute cache.
 - Use the pnpm lockfile with Nixpkgs `fetchPnpmDeps`. Python and tools come from pinned Nixpkgs; put missing packages in `nix/overlay.nix`. Do not add uv, pip environments, or node2nix.
@@ -48,7 +48,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 
 - Setup/build: `nix develop`; `just setup`; `just build`
 - Quality: `just check`; `just test`; `just ci`
-- Data: `just data`; `just history`; `just backfill`; `just validate`; `just publish-data`
+- Data: `just history`; `just backfill`; `just validate`; `just publish-data`
 - Optional codegen: `just generate-data-validator`
 
 ## Status
@@ -57,6 +57,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - [x] Shared instrument catalog, formulas, sessions, provider adapters, schema validation, generated frontend validators, and bounded incremental collection.
 - [x] Chinese mobile UI, default-dark theme, current tables/charts, and selectable dual-axis history with fiscal-year transition markers.
 - [x] Rolling EOD data in a one-commit `data` branch; idempotent scheduled publication is decoupled from Pages and works locally through `.data`.
+- [x] Browser-side delayed quotes and local persistence; a weekday EOD workflow publishes only rolling history.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
 - [ ] Review provider attribution and redistribution terms before public launch.
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import unittest
 from dataclasses import replace
 from datetime import date, datetime
@@ -9,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from collector.dividendi_data import CashDividend, load_instruments, load_latest_document
+from collector.dividendi_data import CashDividend, load_instruments
 from collector.dividendi_data.archive import (
     HistoryDocument,
     load_history_document,
@@ -17,13 +16,13 @@ from collector.dividendi_data.archive import (
 )
 from collector.dividendi_data.backfill import (
     MAX_INCREMENTAL_SESSIONS,
+    SHANGHAI,
     assemble_backfilled_history,
     refresh_history,
 )
 from collector.dividendi_data.baostock_history import HistoricalSpotClose
 from collector.dividendi_data.calendar import active_contract_codes
 from collector.dividendi_data.cffex_history import HistoricalFuturesClose
-from collector.dividendi_data.refresh import SHANGHAI
 
 
 class HistoricalBackfillTest(unittest.TestCase):
@@ -107,12 +106,7 @@ class HistoricalBackfillTest(unittest.TestCase):
     def test_weekend_refresh_adds_friday_once_then_stays_idempotent(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            latest_path = root / "latest.json"
             history_path = root / "history.json"
-            fixture = Path(__file__).parent / "fixtures" / "latest.json"
-            latest = json.loads(fixture.read_text(encoding="utf-8"))
-            latest["fetchedAt"] = "2026-08-30T10:00:00Z"
-            latest_path.write_text(json.dumps(latest), encoding="utf-8")
             initial = assemble_backfilled_history(
                 self.catalog,
                 self.sessions[0],
@@ -134,12 +128,13 @@ class HistoricalBackfillTest(unittest.TestCase):
                 ),
                 patch(
                     "collector.dividendi_data.backfill.fetch_catalog_dividends",
-                    side_effect=AssertionError("单日更新不应重新抓取分红"),
+                    return_value=self.dividends,
                 ),
             ):
-                self.assertTrue(refresh_history(latest_path, history_path))
+                as_of = datetime(2026, 8, 30, 18, tzinfo=SHANGHAI)
+                self.assertTrue(refresh_history(history_path, as_of=as_of))
                 first_bytes = history_path.read_bytes()
-                self.assertFalse(refresh_history(latest_path, history_path))
+                self.assertFalse(refresh_history(history_path, as_of=as_of))
                 self.assertEqual(history_path.read_bytes(), first_bytes)
 
             history = load_history_document(history_path, self.catalog)
@@ -177,12 +172,7 @@ class HistoricalBackfillTest(unittest.TestCase):
         }
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            latest_path = root / "latest.json"
             history_path = root / "history.json"
-            fixture = Path(__file__).parent / "fixtures" / "latest.json"
-            latest = json.loads(fixture.read_text(encoding="utf-8"))
-            latest["fetchedAt"] = "2026-08-30T10:00:00Z"
-            latest_path.write_text(json.dumps(latest), encoding="utf-8")
             initial = assemble_backfilled_history(
                 self.catalog,
                 sessions[0],
@@ -207,7 +197,12 @@ class HistoricalBackfillTest(unittest.TestCase):
                     return_value=self.dividends,
                 ) as fetch_dividends,
             ):
-                self.assertTrue(refresh_history(latest_path, history_path))
+                self.assertTrue(
+                    refresh_history(
+                        history_path,
+                        as_of=datetime(2026, 8, 28, 19, tzinfo=SHANGHAI),
+                    )
+                )
 
             fetch_futures.assert_called_once_with(
                 self.sessions[0],
@@ -224,13 +219,15 @@ class HistoricalBackfillTest(unittest.TestCase):
     def test_rejects_incremental_gap_above_limit(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            latest_path = root / "latest.json"
             history_path = root / "history.json"
-            fixture = Path(__file__).parent / "fixtures" / "latest.json"
-            latest = json.loads(fixture.read_text(encoding="utf-8"))
-            latest["fetchedAt"] = "2026-08-28T08:00:00Z"
-            latest_path.write_text(json.dumps(latest), encoding="utf-8")
-            latest_document = load_latest_document(latest_path, self.catalog)
+            latest_document = assemble_backfilled_history(
+                self.catalog,
+                self.sessions[-1],
+                self.sessions[-1],
+                self.futures,
+                self.spots,
+                self.dividends,
+            ).snapshots[-1]
             old_snapshot = replace(
                 latest_document,
                 market_date=date(2026, 7, 1),
@@ -260,7 +257,10 @@ class HistoricalBackfillTest(unittest.TestCase):
                     f"超过自动补齐上限 {MAX_INCREMENTAL_SESSIONS}",
                 ),
             ):
-                refresh_history(latest_path, history_path)
+                refresh_history(
+                    history_path,
+                    as_of=datetime(2026, 8, 28, 19, tzinfo=SHANGHAI),
+                )
 
 
 if __name__ == "__main__":

@@ -1,34 +1,11 @@
-name: Update market data
-run-name: Update market data (${{ github.event.schedule || inputs.mode }})
+name: Update market history
+run-name: Update market history (${{ github.event.schedule || 'manual' }})
 
 on:
   schedule:
-    - cron: "17 9 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 10 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 11 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 12 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 13 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 14 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "17 15 * * 1-5"
-      timezone: Asia/Shanghai
-    - cron: "37 18 * * *"
+    - cron: "23 19 * * 1-5"
       timezone: Asia/Shanghai
   workflow_dispatch:
-    inputs:
-      mode:
-        description: Data to refresh
-        type: choice
-        default: all
-        options:
-          - all
-          - latest
-          - history
 
 permissions: {}
 
@@ -65,39 +42,8 @@ jobs:
       - name: Restore published data
         run: |
           mkdir -p .data
-          cp .published-data/latest.json .data/latest.json
           cp .published-data/history.json .data/history.json
-      - name: Select update mode
-        id: mode
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REQUESTED_MODE: ${{ inputs.mode }}
-          SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          if [[ "$EVENT_NAME" == "schedule" ]]; then
-            case "$SCHEDULE" in
-              "17 9 * * 1-5") mode=latest ;;
-              "17 10 * * 1-5") mode=latest ;;
-              "17 11 * * 1-5") mode=latest ;;
-              "17 12 * * 1-5") mode=latest ;;
-              "17 13 * * 1-5") mode=latest ;;
-              "17 14 * * 1-5") mode=latest ;;
-              "17 15 * * 1-5") mode=latest ;;
-              "37 18 * * *") mode=history ;;
-              *)
-                echo "Unknown schedule: $SCHEDULE" >&2
-                exit 1
-                ;;
-            esac
-          else
-            mode=$REQUESTED_MODE
-          fi
-          echo "value=$mode" >> "$GITHUB_OUTPUT"
-      - name: Refresh latest snapshot
-        if: steps.mode.outputs.value == 'latest' || steps.mode.outputs.value == 'all'
-        run: nix develop --command just data
       - name: Refresh official history
-        if: steps.mode.outputs.value == 'history' || steps.mode.outputs.value == 'all'
         run: nix develop --command just history
       - name: Validate and publish changed data
         run: |

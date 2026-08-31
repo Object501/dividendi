@@ -6,9 +6,9 @@ from copy import deepcopy
 from pathlib import Path
 
 from collector.dividendi_data import load_instruments
-from collector.dividendi_data.documents import load_latest_document, parse_latest_document
+from collector.dividendi_data.documents import parse_latest_document
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "latest.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "snapshot.json"
 
 
 class LatestDocumentTest(unittest.TestCase):
@@ -18,7 +18,7 @@ class LatestDocumentTest(unittest.TestCase):
             self.raw_document = json.load(source)
 
     def test_loads_valid_document(self) -> None:
-        document = load_latest_document(FIXTURE_PATH, self.catalog)
+        document = parse_latest_document(self.raw_document, self.catalog)
 
         self.assertEqual(document.schema_version, 1)
         self.assertEqual(len(document.stocks), len(self.catalog.stocks))

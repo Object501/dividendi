@@ -33,10 +33,9 @@ class PublishDataBranchTest(unittest.TestCase):
             check=True,
         )
         self.data.mkdir()
-        self.write_data(latest=1, history=1)
+        self.write_data(1)
 
-    def write_data(self, *, latest: int, history: int) -> None:
-        (self.data / "latest.json").write_text(f'{{"value":{latest}}}\n')
+    def write_data(self, history: int) -> None:
         (self.data / "history.json").write_text(f'{{"value":{history}}}\n')
 
     def publish(
@@ -68,58 +67,64 @@ class PublishDataBranchTest(unittest.TestCase):
         )
         return result.stdout.strip()
 
-    def test_lists_every_changed_file(self) -> None:
-        self.publish()
-        self.assertEqual(
-            self.commit_message(),
-            "\n".join(
-                (
-                    f"chore: update data @ {TIMESTAMP}",
-                    "",
-                    "Files changed:",
-                    "- latest.json",
-                    "- history.json",
-                )
-            ),
+    def install_legacy_latest_file(self) -> None:
+        latest = self.data / "latest.json"
+        latest.write_text('{"legacy":true}\n')
+        entries = []
+        for filename in ("history.json", "latest.json"):
+            blob = subprocess.run(
+                ["git", "hash-object", "-w", self.data / filename],
+                cwd=self.repository,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            entries.append(f"100644 blob {blob}\t{filename}\n")
+        tree = subprocess.run(
+            ["git", "mktree"],
+            cwd=self.repository,
+            input="".join(entries),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        commit = subprocess.run(
+            ["git", "commit-tree", tree, "-m", "legacy data"],
+            cwd=self.repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        subprocess.run(
+            ["git", "push", "--force", "origin", f"{commit}:refs/heads/data"],
+            cwd=self.repository,
+            check=True,
+            capture_output=True,
         )
 
-        self.write_data(latest=2, history=2)
+    def test_lists_history_and_skips_unchanged_data(self) -> None:
         self.publish()
-        self.assertEqual(
-            self.commit_message(),
-            "\n".join(
-                (
-                    f"chore: update data @ {TIMESTAMP}",
-                    "",
-                    "Files changed:",
-                    "- latest.json",
-                    "- history.json",
-                )
-            ),
+        expected = "\n".join(
+            (
+                f"chore: update data @ {TIMESTAMP}",
+                "",
+                "Files changed:",
+                "- history.json",
+            )
         )
+        self.assertEqual(self.commit_message(), expected)
 
-    def test_lists_only_latest_and_skips_unchanged_data(self) -> None:
-        self.publish()
         first_commit = subprocess.run(
             ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
             check=True,
             capture_output=True,
             text=True,
         ).stdout.strip()
+        self.assertEqual(self.publish().stdout, "data unchanged\n")
 
-        self.write_data(latest=2, history=1)
+        self.write_data(2)
         self.publish()
-        self.assertEqual(
-            self.commit_message(),
-            "\n".join(
-                (
-                    f"chore: update data @ {TIMESTAMP}",
-                    "",
-                    "Files changed:",
-                    "- latest.json",
-                )
-            ),
-        )
+        self.assertEqual(self.commit_message(), expected)
         changed_commit = subprocess.run(
             ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
             check=True,
@@ -128,40 +133,8 @@ class PublishDataBranchTest(unittest.TestCase):
         ).stdout.strip()
         self.assertNotEqual(first_commit, changed_commit)
 
-        result = self.publish()
-        self.assertEqual(result.stdout, "data unchanged\n")
-        unchanged_commit = subprocess.run(
-            ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        self.assertEqual(changed_commit, unchanged_commit)
-
-    def test_lists_only_history(self) -> None:
-        self.publish()
-        self.write_data(latest=1, history=2)
-        self.publish()
-        self.assertEqual(
-            self.commit_message(),
-            "\n".join(
-                (
-                    f"chore: update data @ {TIMESTAMP}",
-                    "",
-                    "Files changed:",
-                    "- history.json",
-                )
-            ),
-        )
-
     def test_can_rewrite_only_the_root_commit_message(self) -> None:
         self.publish()
-        first_commit = subprocess.run(
-            ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
         first_tree = subprocess.run(
             ["git", f"--git-dir={self.remote}", "show", "-s", "--format=%T", "data"],
             check=True,
@@ -171,12 +144,6 @@ class PublishDataBranchTest(unittest.TestCase):
 
         rewritten_timestamp = "2026-08-30 21:31"
         self.publish(rewrite_message=True, timestamp=rewritten_timestamp)
-        rewritten_commit = subprocess.run(
-            ["git", f"--git-dir={self.remote}", "rev-parse", "data"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
         rewritten_tree = subprocess.run(
             ["git", f"--git-dir={self.remote}", "show", "-s", "--format=%T", "data"],
             check=True,
@@ -184,7 +151,6 @@ class PublishDataBranchTest(unittest.TestCase):
             text=True,
         ).stdout.strip()
 
-        self.assertNotEqual(first_commit, rewritten_commit)
         self.assertEqual(first_tree, rewritten_tree)
         self.assertEqual(
             self.commit_message(),
@@ -193,8 +159,32 @@ class PublishDataBranchTest(unittest.TestCase):
                     f"chore: update data @ {rewritten_timestamp}",
                     "",
                     "Files changed:",
-                    "- latest.json",
                     "- history.json",
+                )
+            ),
+        )
+
+    def test_removes_a_legacy_latest_file_without_republishing_it(self) -> None:
+        self.publish()
+        self.install_legacy_latest_file()
+
+        self.publish()
+
+        files = subprocess.run(
+            ["git", f"--git-dir={self.remote}", "ls-tree", "--name-only", "data"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(files, ["history.json"])
+        self.assertEqual(
+            self.commit_message(),
+            "\n".join(
+                (
+                    f"chore: update data @ {TIMESTAMP}",
+                    "",
+                    "Files changed:",
+                    "- latest.json",
                 )
             ),
         )

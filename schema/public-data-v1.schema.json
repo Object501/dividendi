@@ -2,15 +2,8 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://raw.githubusercontent.com/Object501/dividendi/main/schema/public-data-v1.schema.json",
 	"title": "dividendi 公开数据 v1",
-	"description": "latest.json 与 history.json 的结构契约；跨字段金融计算由生产者和消费者另行校验。",
-	"oneOf": [
-		{
-			"$ref": "#/$defs/latestDocument"
-		},
-		{
-			"$ref": "#/$defs/historyDocument"
-		}
-	],
+	"description": "history.json 的结构契约；跨字段金融计算由生产者和消费者另行校验。",
+	"$ref": "#/$defs/historyDocument",
 	"$defs": {
 		"decimalString": {
 			"type": "string",

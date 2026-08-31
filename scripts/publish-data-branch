@@ -16,12 +16,10 @@ fi
 data_directory=$1
 remote=${2:-origin}
 
-for filename in latest.json history.json; do
-	if [[ ! -f "$data_directory/$filename" ]]; then
-		echo "missing data file: $data_directory/$filename" >&2
-		exit 2
-	fi
-done
+if [[ ! -f "$data_directory/history.json" ]]; then
+	echo "missing data file: $data_directory/history.json" >&2
+	exit 2
+fi
 
 git_directory=$(git rev-parse --absolute-git-dir)
 data_directory=$(cd "$data_directory" && pwd)
@@ -35,17 +33,18 @@ export GIT_INDEX_FILE=$temporary_directory/index
 export GIT_WORK_TREE=$data_directory
 
 changed_files=()
-for filename in latest.json history.json; do
-	if [[ -z "$expected_commit" ]] \
-		|| ! git cat-file -e "$expected_commit:$filename" 2>/dev/null \
-		|| ! cmp -s <(git show "$expected_commit:$filename") "$data_directory/$filename"; then
-		changed_files+=("$filename")
-	fi
-done
+if [[ -n "$expected_commit" ]] && git cat-file -e "$expected_commit:latest.json" 2>/dev/null; then
+	changed_files+=(latest.json)
+fi
+if [[ -z "$expected_commit" ]] \
+	|| ! git cat-file -e "$expected_commit:history.json" 2>/dev/null \
+	|| ! cmp -s <(git show "$expected_commit:history.json") "$data_directory/history.json"; then
+	changed_files+=(history.json)
+fi
 
 if (( ${#changed_files[@]} == 0 )); then
 	if [[ $rewrite_message == true ]]; then
-		changed_files=(latest.json history.json)
+		changed_files=(history.json)
 	else
 		printf 'data unchanged\n'
 		exit 0
@@ -53,7 +52,7 @@ if (( ${#changed_files[@]} == 0 )); then
 fi
 
 git read-tree --empty
-git add -- latest.json history.json
+git add -- history.json
 tree=$(git write-tree)
 commit=$(bash "$script_directory/data-commit-message" "${changed_files[@]}" | git commit-tree "$tree")
 

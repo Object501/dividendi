@@ -47,7 +47,7 @@ def _validate(value: object, definition: str, document_name: str) -> None:
 
 
 def validate_latest_schema(value: object) -> None:
-    """Validate the structural latest.json v1 contract."""
+    """Validate one structural EOD snapshot inside history.json."""
 
     _validate(value, "latestDocument", "latest")
 

@@ -7,7 +7,7 @@ import os
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -50,6 +50,64 @@ class LatestDocument:
     fetched_at: datetime
     futures: tuple[FuturesMetric, ...]
     stocks: tuple[StockMetric, ...]
+
+
+def _decimal_string(value: Decimal) -> str:
+    return format(value, "f")
+
+
+def latest_document_json(document: LatestDocument) -> dict[str, object]:
+    """Convert an EOD snapshot to its stable public JSON representation."""
+
+    if document.fetched_at.tzinfo is None or document.fetched_at.utcoffset() is None:
+        raise ValueError("抓取时间必须包含时区")
+    fetched_at = document.fetched_at.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return {
+        "schemaVersion": document.schema_version,
+        "marketDate": document.market_date.isoformat(),
+        "fetchedAt": fetched_at,
+        "futures": [
+            {
+                "productCode": metric.product_code,
+                "contractCode": metric.contract_code,
+                "expiryDate": metric.expiry_date.isoformat(),
+                "indexLevel": _decimal_string(metric.index_level),
+                "futuresPrice": _decimal_string(metric.futures_price),
+                "discountPoints": _decimal_string(metric.discount_points),
+                "remainingTradingDays": metric.remaining_trading_days,
+                "dailyDiscountPoints": _decimal_string(metric.daily_discount_points),
+                "source": metric.source,
+            }
+            for metric in document.futures
+        ],
+        "stocks": [
+            {
+                "market": metric.market,
+                "code": metric.code,
+                "latestPrice": _decimal_string(metric.latest_price),
+                "implementedDividendPerShare": _decimal_string(
+                    metric.implemented_dividend_per_share
+                ),
+                "dividendYield": _decimal_string(metric.dividend_yield),
+                "priceSource": metric.price_source,
+                "dividendSource": metric.dividend_source,
+                **(
+                    {}
+                    if metric.completed_fiscal_year is None
+                    else {
+                        "completedFiscalYear": metric.completed_fiscal_year,
+                        "completedFiscalYearDividendPerShare": _decimal_string(
+                            metric.completed_fiscal_year_dividend_per_share  # type: ignore[arg-type]
+                        ),
+                        "completedFiscalYearDividendYield": _decimal_string(
+                            metric.completed_fiscal_year_dividend_yield  # type: ignore[arg-type]
+                        ),
+                    }
+                ),
+            }
+            for metric in document.stocks
+        ],
+    }
 
 
 def _mapping(value: object, path: str) -> Mapping[str, object]:
@@ -238,13 +296,6 @@ def parse_latest_document(
         futures=futures,
         stocks=stocks,
     )
-
-
-def load_latest_document(path: Path, catalog: InstrumentCatalog) -> LatestDocument:
-    """Read and validate a latest-data JSON document."""
-
-    with path.open(encoding="utf-8") as source:
-        return parse_latest_document(json.load(source), catalog)
 
 
 def atomic_write_json(value: object, path: Path) -> bool:

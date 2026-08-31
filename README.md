@@ -39,15 +39,17 @@
 
 ## 数据与时效
 
-本站不是实时行情系统。浏览器不访问金融接口，只下载 GitHub Actions 中 Python 采集器发布的静态 JSON；刷新页面不会获得分钟级走势。
+本站不是实时行情系统，也不发布 `latest.json`。浏览器先读取本机保存的最近成功快照，再下载 `history.json` 的最新日终基准，并直接向东方财富请求约延迟 15 分钟的股票、指数、在交易合约和已公布 A 股休市安排，在浏览器内计算最新贴水、剩余交易日和股息率。
 
-- 工作日交易时段约每小时更新 `latest.json`。排队或数据源延迟会使更新时间更晚；巨潮分红每个行情日最多抓取一次，其余报价刷新复用分红基数。
-- 每天 18:37（北京时间）尝试更新 `history.json`，从最后交易日增量补齐最近 365 天的日终快照。自动补齐最多 10 个交易日，更大缺口必须手工运行 `just backfill`。
+- 最新计算结果只持久化在浏览器本机；失败时显示上次成功结果。客户端绝不把盘中数据写回 GitHub，也不会触发 Pages 部署。
+- 浏览器首次打开时请求行情；页面可见、联网且处于中国市场时段时名义上每小时刷新，任意两次请求至少间隔 5 分钟。
+- 每个工作日 19:23（北京时间）只有一个 GitHub Actions 定时任务，增量更新 `history.json`。GitHub 调度和数据源都可能延迟。
+- `history.json` 从最后交易日增量补齐最近 365 天的日终快照。自动补齐最多 10 个交易日，更大缺口必须手工运行 `just backfill`。
 - 页面显示行情日期和抓取时间；使用数值前请先检查二者。
 
-`latest.json` 仅在金融数值变化时更新，浏览器以 `no-store` 下载并只保存在内存。`history.json` 同日覆盖，只保留 `(最新交易日 - 365 天, 最新交易日]` 的交易日收盘快照，并仅在用户打开历史趋势时下载。
+`history.json` 同日覆盖，只保留 `(最新交易日 - 365 天, 最新交易日]` 的交易日收盘快照；浏览器启动时读取它作为分红和日终计算基准，图表代码仍按需加载。每日任务在文件字节没有变化时不会提交。
 
-两份文件使用 `schemaVersion: 1`，结构统一定义在 [`schema/public-data-v1.schema.json`](schema/public-data-v1.schema.json)。发布前依次执行 JSON Schema、Python 语义和前端解析校验；前端从 Schema 生成结构校验器，再独立复核公式和标的完整性。生成目录不进入 Git，开发、测试、类型检查和构建都会先重新生成。升级数据版本时须先部署兼容新旧版本的前端，再切换采集器。
+文件使用 `schemaVersion: 1`，结构定义在 [`schema/public-data-v1.schema.json`](schema/public-data-v1.schema.json)。发布前依次执行 JSON Schema、Python 语义和前端解析校验；前端从 Schema 生成结构校验器，再独立复核公式和标的完整性。生成目录不进入 Git，开发、测试、类型检查和构建都会先重新生成。升级数据版本时须先部署兼容新旧版本的前端，再切换采集器。
 
 本地数据位于忽略的 `.data`，Nix 开发环境自动设置 `DIVIDENDI_DATA_DIR=$PWD/.data`。生产环境直接读取独立的单提交 `data` 分支，不把 JSON 打包进 Pages；数据更新不会触发网站部署。发布器逐字节比较远端数据，无变化时不提交，有变化时以 `--force-with-lease` 替换唯一根提交。原始文件 CDN 可能缓存约 5 分钟。
 
@@ -57,7 +59,7 @@
 chore: update data @ 2026-08-30 21:30
 
 Files changed:
-- latest.json
+- history.json
 ```
 
 完整回填带随机节流，只改写本地历史，检查后再显式发布：
@@ -76,7 +78,6 @@ just publish-data
 nix develop
 just setup     # 安装前端依赖
 just check     # 格式、静态检查、类型检查和测试
-just data      # 更新最新行情
 just history   # 增量更新收盘历史
 just backfill  # 重建最近 365 天收盘历史
 just validate  # 校验待发布数据
@@ -91,6 +92,6 @@ GitHub 工作流使用仓库级 Magic Nix Cache。Dependabot 每周检查 pnpm �
 
 ## 数据源与许可
 
-数据源：[新浪财经](https://finance.sina.com.cn/)、[巨潮资讯](https://webapi.cninfo.com.cn/)、[中国金融期货交易所](https://www.cffex.com.cn/zz1000/)。免费公开接口不保证可用性，内容仅供个人研究，不构成投资建议。
+盘中行情、合约目录和休市安排来自[东方财富](https://quote.eastmoney.com/)，日终历史使用[巨潮资讯](https://webapi.cninfo.com.cn/)、[中国金融期货交易所](https://www.cffex.com.cn/zz1000/)和 BaoStock。免费公开接口不保证可用性，内容仅供个人研究，不构成投资建议。
 
 本项目使用 GPL-3.0 许可证。Dividendi 在拉丁文中意为“关于股息的”。

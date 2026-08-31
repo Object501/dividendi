@@ -43,6 +43,54 @@ export interface HistoryData {
 	readonly snapshots: readonly LatestData[];
 }
 
+function decimalString(value: number): string {
+	if (!Number.isFinite(value)) {
+		throw new Error("客户端快照包含非有限数值");
+	}
+	return String(value);
+}
+
+export function latestDataJson(data: LatestData): Record<string, unknown> {
+	return {
+		fetchedAt: data.fetchedAt,
+		futures: data.futures.map((metric) => ({
+			contractCode: metric.contractCode,
+			dailyDiscountPoints: decimalString(metric.dailyDiscountPoints),
+			discountPoints: decimalString(metric.discountPoints),
+			expiryDate: metric.expiryDate,
+			futuresPrice: decimalString(metric.futuresPrice),
+			indexLevel: decimalString(metric.indexLevel),
+			productCode: metric.productCode,
+			remainingTradingDays: metric.remainingTradingDays,
+			source: metric.source,
+		})),
+		marketDate: data.marketDate,
+		schemaVersion: 1,
+		stocks: data.stocks.map((metric) => ({
+			code: metric.code,
+			...(metric.completedFiscalYear === undefined
+				? {}
+				: {
+						completedFiscalYear: metric.completedFiscalYear,
+						completedFiscalYearDividendPerShare: decimalString(
+							metric.completedFiscalYearDividendPerShare as number,
+						),
+						completedFiscalYearDividendYield: decimalString(
+							metric.completedFiscalYearDividendYield as number,
+						),
+					}),
+			dividendSource: metric.dividendSource,
+			dividendYield: decimalString(metric.dividendYield),
+			implementedDividendPerShare: decimalString(
+				metric.implementedDividendPerShare,
+			),
+			latestPrice: decimalString(metric.latestPrice),
+			market: metric.market,
+			priceSource: metric.priceSource,
+		})),
+	};
+}
+
 function decimalNumber(
 	record: Record<string, unknown>,
 	key: string,
