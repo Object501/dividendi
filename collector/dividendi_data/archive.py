@@ -8,14 +8,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from .documents import (
-    LatestDocument,
-    atomic_write_json,
-    latest_document_json,
-    parse_latest_document,
-)
 from .history import retain_rolling_window
 from .instruments import InstrumentCatalog
+from .market_snapshot import (
+    MarketSnapshot,
+    atomic_write_json,
+    market_snapshot_json,
+    parse_market_snapshot,
+)
 from .schema import validate_history_schema
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +26,7 @@ DEFAULT_HISTORY_PATH = DEFAULT_DATA_DIR / "history.json"
 @dataclass(frozen=True, slots=True)
 class HistoryDocument:
     schema_version: int
-    snapshots: tuple[LatestDocument, ...]
+    snapshots: tuple[MarketSnapshot, ...]
 
 
 def parse_history_document(value: object, catalog: InstrumentCatalog) -> HistoryDocument:
@@ -42,7 +42,7 @@ def parse_history_document(value: object, catalog: InstrumentCatalog) -> History
         raise ValueError("history.snapshots 必须是数组")
 
     snapshots = tuple(
-        parse_latest_document(snapshot, catalog, validate_schema=False)
+        parse_market_snapshot(snapshot, catalog, validate_schema=False)
         for snapshot in raw_snapshots
     )
     dates = tuple(snapshot.market_date for snapshot in snapshots)
@@ -59,7 +59,7 @@ def parse_history_document(value: object, catalog: InstrumentCatalog) -> History
 def history_document_json(document: HistoryDocument) -> dict[str, object]:
     return {
         "schemaVersion": document.schema_version,
-        "snapshots": [latest_document_json(snapshot) for snapshot in document.snapshots],
+        "snapshots": [market_snapshot_json(snapshot) for snapshot in document.snapshots],
     }
 
 

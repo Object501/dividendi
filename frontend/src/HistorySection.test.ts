@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import latestFixture from "../../collector/tests/fixtures/snapshot.json";
+import snapshotFixture from "../../collector/tests/fixtures/snapshot.json";
 import { instruments } from "./config";
-import { parseLatestData } from "./data";
+import { parseMarketSnapshot } from "./data";
 import {
 	fiscalYearTransitions,
 	futuresPoints,
 	stockPoints,
 } from "./HistorySection";
 
-const snapshot = parseLatestData(latestFixture, instruments);
+const snapshot = parseMarketSnapshot(snapshotFixture, instruments);
 const history = { schemaVersion: 1 as const, snapshots: [snapshot] };
 
 describe("history chart points", () => {

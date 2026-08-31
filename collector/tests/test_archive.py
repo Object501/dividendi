@@ -17,10 +17,10 @@ class HistoryDocumentTest(unittest.TestCase):
     def setUp(self) -> None:
         self.catalog = load_instruments()
         with FIXTURE_PATH.open(encoding="utf-8") as source:
-            self.latest = json.load(source)
+            self.raw_snapshot = json.load(source)
 
     def snapshot(self, market_date: str) -> dict[str, object]:
-        snapshot = deepcopy(self.latest)
+        snapshot = deepcopy(self.raw_snapshot)
         snapshot["marketDate"] = market_date
         snapshot["fetchedAt"] = f"{market_date}T08:00:00Z"
         return snapshot

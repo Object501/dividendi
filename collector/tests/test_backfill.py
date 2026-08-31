@@ -220,7 +220,7 @@ class HistoricalBackfillTest(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             history_path = root / "history.json"
-            latest_document = assemble_backfilled_history(
+            snapshot = assemble_backfilled_history(
                 self.catalog,
                 self.sessions[-1],
                 self.sessions[-1],
@@ -229,7 +229,7 @@ class HistoricalBackfillTest(unittest.TestCase):
                 self.dividends,
             ).snapshots[-1]
             old_snapshot = replace(
-                latest_document,
+                snapshot,
                 market_date=date(2026, 7, 1),
                 fetched_at=datetime(2026, 7, 1, 15, tzinfo=SHANGHAI),
             )

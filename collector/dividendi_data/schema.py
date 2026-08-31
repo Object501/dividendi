@@ -46,10 +46,10 @@ def _validate(value: object, definition: str, document_name: str) -> None:
     raise ValueError(f"{path} 不符合 public-data-v1 JSON Schema: {error.message}")
 
 
-def validate_latest_schema(value: object) -> None:
+def validate_market_snapshot_schema(value: object) -> None:
     """Validate one structural EOD snapshot inside history.json."""
 
-    _validate(value, "latestDocument", "latest")
+    _validate(value, "marketSnapshot", "snapshot")
 
 
 def validate_history_schema(value: object) -> None:

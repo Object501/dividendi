@@ -3,7 +3,7 @@ import type {
 	InstrumentConfig,
 	MarketInstrument,
 } from "./config";
-import type { LatestData } from "./data";
+import type { MarketSnapshot } from "./data";
 import { shanghaiDate, tradingDayPhase } from "./marketTime";
 import { fetchJson } from "./request";
 import {
@@ -375,12 +375,12 @@ export async function fetchEastmoneyQuotes(
 }
 
 export function mergeEastmoneyQuotes(
-	baseline: LatestData,
+	baseline: MarketSnapshot,
 	baselinePhase: TradingDayPhase,
 	live: EastmoneyQuotes,
 	instruments: InstrumentConfig,
 	calendar: TradingCalendar,
-): LatestData {
+): MarketSnapshot {
 	if (live.marketDate < baseline.marketDate) {
 		throw new Error("浏览器行情早于每日基准");
 	}
@@ -487,7 +487,7 @@ export function mergeEastmoneyQuotes(
 }
 
 function instrumentsForProducts(
-	baseline: LatestData,
+	baseline: MarketSnapshot,
 	live: EastmoneyQuotes,
 	spotQuotes: ReadonlyMap<string, EastmoneyQuote>,
 	instruments: InstrumentConfig,

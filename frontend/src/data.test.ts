@@ -1,25 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import latestFixture from "../../collector/tests/fixtures/snapshot.json";
+import snapshotFixture from "../../collector/tests/fixtures/snapshot.json";
 import { instruments } from "./config";
-import { parseHistoryData, parseLatestData } from "./data";
+import { parseHistoryData, parseMarketSnapshot } from "./data";
 
-describe("parseLatestData", () => {
+describe("parseMarketSnapshot", () => {
 	it("accepts the collector fixture", () => {
-		const latest = parseLatestData(latestFixture, instruments);
+		const snapshot = parseMarketSnapshot(snapshotFixture, instruments);
 
-		expect(latest.stocks).toHaveLength(instruments.stocks.length);
-		expect(new Set(latest.futures.map((metric) => metric.productCode))).toEqual(
+		expect(snapshot.stocks).toHaveLength(instruments.stocks.length);
+		expect(
+			new Set(snapshot.futures.map((metric) => metric.productCode)),
+		).toEqual(
 			new Set(instruments.futuresProducts.map((product) => product.code)),
 		);
 	});
 
 	it("rejects an inconsistent daily discount", () => {
 		expect(() =>
-			parseLatestData(
+			parseMarketSnapshot(
 				{
-					...latestFixture,
-					futures: [{ ...latestFixture.futures[0], dailyDiscountPoints: "2" }],
+					...snapshotFixture,
+					futures: [
+						{ ...snapshotFixture.futures[0], dailyDiscountPoints: "2" },
+					],
 				},
 				instruments,
 			),
@@ -28,18 +32,21 @@ describe("parseLatestData", () => {
 
 	it("rejects fields outside the generated structural validator", () => {
 		expect(() =>
-			parseLatestData({ ...latestFixture, unexpected: true }, instruments),
+			parseMarketSnapshot(
+				{ ...snapshotFixture, unexpected: true },
+				instruments,
+			),
 		).toThrow("public-data-v1 JSON Schema");
 	});
 
 	it("lets the generated validator enforce fiscal-year field dependencies", () => {
 		expect(() =>
-			parseLatestData(
+			parseMarketSnapshot(
 				{
-					...latestFixture,
+					...snapshotFixture,
 					stocks: [
-						{ ...latestFixture.stocks[0], completedFiscalYear: 2025 },
-						...latestFixture.stocks.slice(1),
+						{ ...snapshotFixture.stocks[0], completedFiscalYear: 2025 },
+						...snapshotFixture.stocks.slice(1),
 					],
 				},
 				instruments,
@@ -49,12 +56,12 @@ describe("parseLatestData", () => {
 
 	it("keeps dividend formulas as an independent semantic check", () => {
 		expect(() =>
-			parseLatestData(
+			parseMarketSnapshot(
 				{
-					...latestFixture,
+					...snapshotFixture,
 					stocks: [
-						{ ...latestFixture.stocks[0], dividendYield: "0.06" },
-						...latestFixture.stocks.slice(1),
+						{ ...snapshotFixture.stocks[0], dividendYield: "0.06" },
+						...snapshotFixture.stocks.slice(1),
 					],
 				},
 				instruments,
@@ -64,10 +71,10 @@ describe("parseLatestData", () => {
 
 	it("rejects an incomplete stock list", () => {
 		expect(() =>
-			parseLatestData(
+			parseMarketSnapshot(
 				{
-					...latestFixture,
-					stocks: latestFixture.stocks.slice(0, -1),
+					...snapshotFixture,
+					stocks: snapshotFixture.stocks.slice(0, -1),
 				},
 				instruments,
 			),
@@ -76,10 +83,10 @@ describe("parseLatestData", () => {
 
 	it("rejects an extra stock", () => {
 		expect(() =>
-			parseLatestData(
+			parseMarketSnapshot(
 				{
-					...latestFixture,
-					stocks: [...latestFixture.stocks, latestFixture.stocks[0]],
+					...snapshotFixture,
+					stocks: [...snapshotFixture.stocks, snapshotFixture.stocks[0]],
 				},
 				instruments,
 			),
@@ -94,10 +101,10 @@ describe("parseHistoryData", () => {
 				schemaVersion: 1,
 				snapshots: [
 					{
-						...latestFixture,
+						...snapshotFixture,
 						marketDate: "2026-08-27",
 					},
-					latestFixture,
+					snapshotFixture,
 				],
 			},
 			instruments,
@@ -111,7 +118,7 @@ describe("parseHistoryData", () => {
 			parseHistoryData(
 				{
 					schemaVersion: 1,
-					snapshots: [latestFixture, latestFixture],
+					snapshots: [snapshotFixture, snapshotFixture],
 				},
 				instruments,
 			),
@@ -124,8 +131,8 @@ describe("parseHistoryData", () => {
 				{
 					schemaVersion: 1,
 					snapshots: [
-						{ ...latestFixture, marketDate: "2025-08-28" },
-						latestFixture,
+						{ ...snapshotFixture, marketDate: "2025-08-28" },
+						snapshotFixture,
 					],
 				},
 				instruments,

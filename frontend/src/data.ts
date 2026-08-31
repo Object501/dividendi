@@ -2,7 +2,7 @@ import type { InstrumentConfig } from "./config";
 import {
 	type PublicDataValidator,
 	validateHistoryDocument,
-	validateLatestDocument,
+	validateMarketSnapshot,
 } from "./generated/publicDataValidators.js";
 
 export interface FuturesMetric {
@@ -30,7 +30,7 @@ export interface StockMetric {
 	readonly completedFiscalYearDividendYield?: number;
 }
 
-export interface LatestData {
+export interface MarketSnapshot {
 	readonly schemaVersion: 1;
 	readonly marketDate: string;
 	readonly fetchedAt: string;
@@ -40,7 +40,7 @@ export interface LatestData {
 
 export interface HistoryData {
 	readonly schemaVersion: 1;
-	readonly snapshots: readonly LatestData[];
+	readonly snapshots: readonly MarketSnapshot[];
 }
 
 function decimalString(value: number): string {
@@ -50,7 +50,9 @@ function decimalString(value: number): string {
 	return String(value);
 }
 
-export function latestDataJson(data: LatestData): Record<string, unknown> {
+export function marketSnapshotJson(
+	data: MarketSnapshot,
+): Record<string, unknown> {
 	return {
 		fetchedAt: data.fetchedAt,
 		futures: data.futures.map((metric) => ({
@@ -279,18 +281,18 @@ function parseStockMetric(value: unknown, path: string): StockMetric {
 	return metric;
 }
 
-export function parseLatestData(
+export function parseMarketSnapshot(
 	value: unknown,
 	instruments: InstrumentConfig,
-): LatestData {
-	assertStructure(value, validateLatestDocument, "latest");
-	return parseStructuredLatestData(value, instruments);
+): MarketSnapshot {
+	assertStructure(value, validateMarketSnapshot, "snapshot");
+	return parseStructuredMarketSnapshot(value, instruments);
 }
 
-function parseStructuredLatestData(
+function parseStructuredMarketSnapshot(
 	value: unknown,
 	instruments: InstrumentConfig,
-): LatestData {
+): MarketSnapshot {
 	const record = objectValue(value);
 	const marketDate = stringValue(record, "marketDate");
 	const fetchedAt = stringValue(record, "fetchedAt");
@@ -340,7 +342,7 @@ export function parseHistoryData(
 	assertStructure(value, validateHistoryDocument, "history");
 	const record = objectValue(value);
 	const snapshots = arrayValue(record, "snapshots").map((snapshot) =>
-		parseStructuredLatestData(snapshot, instruments),
+		parseStructuredMarketSnapshot(snapshot, instruments),
 	);
 	const dates = snapshots.map((snapshot) => snapshot.marketDate);
 	if (

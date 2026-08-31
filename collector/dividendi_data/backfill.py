@@ -28,13 +28,6 @@ from .cffex_history import (
     fetch_cffex_closes,
 )
 from .cninfo import CNINFO_SOURCE, fetch_catalog_dividends
-from .documents import (
-    FuturesMetric,
-    LatestDocument,
-    StockMetric,
-    latest_document_json,
-    parse_latest_document,
-)
 from .formulas import (
     CashDividend,
     daily_discount_points,
@@ -45,6 +38,13 @@ from .formulas import (
 )
 from .history import retain_rolling_window
 from .instruments import InstrumentCatalog, load_instruments
+from .market_snapshot import (
+    FuturesMetric,
+    MarketSnapshot,
+    StockMetric,
+    market_snapshot_json,
+    parse_market_snapshot,
+)
 
 MAX_INCREMENTAL_SESSIONS = 10
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -101,7 +101,7 @@ def assemble_backfilled_history(
     if len(futures_by_key) != len(futures_closes):
         raise ValueError("中金所历史收盘包含重复合约日期")
 
-    snapshots: list[LatestDocument] = []
+    snapshots: list[MarketSnapshot] = []
     for market_date in sessions:
         futures_metrics: list[FuturesMetric] = []
         for product in catalog.futures_products:
@@ -173,14 +173,14 @@ def assemble_backfilled_history(
                 )
             )
 
-        snapshot = LatestDocument(
+        snapshot = MarketSnapshot(
             schema_version=1,
             market_date=market_date,
             fetched_at=datetime.combine(market_date, time(15), SHANGHAI),
             futures=tuple(futures_metrics),
             stocks=tuple(stock_metrics),
         )
-        parse_latest_document(latest_document_json(snapshot), catalog)
+        parse_market_snapshot(market_snapshot_json(snapshot), catalog)
         snapshots.append(snapshot)
     return HistoryDocument(schema_version=1, snapshots=tuple(snapshots))
 

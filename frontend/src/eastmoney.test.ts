@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { InstrumentConfig } from "./config";
-import type { LatestData } from "./data";
+import type { MarketSnapshot } from "./data";
 import {
 	type EastmoneyQuotes,
 	mergeEastmoneyQuotes,
@@ -30,7 +30,7 @@ if (product === undefined) {
 	throw new Error("测试配置缺少期货品种");
 }
 
-const baseline: LatestData = {
+const baseline: MarketSnapshot = {
 	schemaVersion: 1,
 	marketDate: "2026-08-28",
 	fetchedAt: "2026-08-28T07:05:00Z",

@@ -16,13 +16,6 @@ from .calendar import (
     trading_sessions,
 )
 from .cninfo import fetch_catalog_dividends, fetch_stock_dividends
-from .documents import (
-    FuturesMetric,
-    LatestDocument,
-    StockMetric,
-    latest_document_json,
-    parse_latest_document,
-)
 from .formulas import (
     CashDividend,
     daily_discount_points,
@@ -39,6 +32,13 @@ from .instruments import (
     load_instruments,
     parse_instruments,
 )
+from .market_snapshot import (
+    FuturesMetric,
+    MarketSnapshot,
+    StockMetric,
+    market_snapshot_json,
+    parse_market_snapshot,
+)
 
 __all__ = [
     "CashDividend",
@@ -47,8 +47,8 @@ __all__ = [
     "FuturesProduct",
     "HistoryDocument",
     "InstrumentCatalog",
-    "LatestDocument",
     "MarketInstrument",
+    "MarketSnapshot",
     "StockMetric",
     "active_contract_codes",
     "active_contract_months",
@@ -59,12 +59,12 @@ __all__ = [
     "fetch_stock_dividends",
     "implemented_dividend_per_share",
     "latest_completed_fiscal_year_dividend",
-    "latest_document_json",
     "load_history_document",
     "load_instruments",
+    "market_snapshot_json",
     "parse_history_document",
     "parse_instruments",
-    "parse_latest_document",
+    "parse_market_snapshot",
     "publish_history_document",
     "refresh_history",
     "remaining_trading_days",

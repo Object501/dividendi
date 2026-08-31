@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .formulas import daily_discount_points, discount_points, trailing_dividend_yield
 from .instruments import InstrumentCatalog
-from .schema import validate_latest_schema
+from .schema import validate_market_snapshot_schema
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +44,7 @@ class StockMetric:
 
 
 @dataclass(frozen=True, slots=True)
-class LatestDocument:
+class MarketSnapshot:
     schema_version: int
     market_date: date
     fetched_at: datetime
@@ -56,7 +56,7 @@ def _decimal_string(value: Decimal) -> str:
     return format(value, "f")
 
 
-def latest_document_json(document: LatestDocument) -> dict[str, object]:
+def market_snapshot_json(document: MarketSnapshot) -> dict[str, object]:
     """Convert an EOD snapshot to its stable public JSON representation."""
 
     if document.fetched_at.tzinfo is None or document.fetched_at.utcoffset() is None:
@@ -253,21 +253,21 @@ def _stock_metric(value: object, path: str) -> StockMetric:
     return metric
 
 
-def parse_latest_document(
+def parse_market_snapshot(
     value: object,
     catalog: InstrumentCatalog,
     *,
     validate_schema: bool = True,
-) -> LatestDocument:
-    """Validate a decoded latest-data document against the instrument catalog."""
+) -> MarketSnapshot:
+    """Validate a decoded market snapshot against the instrument catalog."""
 
     if validate_schema:
-        validate_latest_schema(value)
-    record = _mapping(value, "latest")
+        validate_market_snapshot_schema(value)
+    record = _mapping(value, "snapshot")
     if record.get("schemaVersion") != 1:
         raise ValueError("不支持的行情数据版本")
 
-    market_date = _date(record, "marketDate", "latest")
+    market_date = _date(record, "marketDate", "snapshot")
     futures = tuple(
         _futures_metric(metric, f"futures[{index}]", market_date)
         for index, metric in enumerate(_list(record.get("futures"), "futures"))
@@ -289,10 +289,10 @@ def parse_latest_document(
     if document_stocks != configured_stocks:
         raise ValueError("股票行情必须完整覆盖配置并保持相同顺序")
 
-    return LatestDocument(
+    return MarketSnapshot(
         schema_version=1,
         market_date=market_date,
-        fetched_at=_timestamp(record, "fetchedAt", "latest"),
+        fetched_at=_timestamp(record, "fetchedAt", "snapshot"),
         futures=futures,
         stocks=stocks,
     )

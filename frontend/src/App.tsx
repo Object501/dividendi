@@ -4,7 +4,10 @@ import { instruments } from "./config";
 import type { FuturesMetric } from "./data";
 import { HistorySection } from "./HistorySection";
 import { useTheme } from "./theme";
-import { type LatestDataState, useLatestData } from "./useLatestData";
+import {
+	type MarketSnapshotState,
+	useMarketSnapshot,
+} from "./useMarketSnapshot";
 
 const MetricBarChart = lazy(() => import("./MetricBarChart"));
 
@@ -39,7 +42,7 @@ function contractDate(value: string): string {
 	return `${Number(month)}月${Number(day)}日`;
 }
 
-function statusCopy(state: LatestDataState): string {
+function statusCopy(state: MarketSnapshotState): string {
 	if (state.status === "loading") {
 		return "正在读取历史基准与浏览器行情";
 	}
@@ -76,10 +79,10 @@ function PlaceholderValue() {
 
 export function App() {
 	const { theme, toggleTheme } = useTheme();
-	const latestState = useLatestData();
-	const latest = latestState.data;
+	const snapshotState = useMarketSnapshot();
+	const currentSnapshot = snapshotState.data;
 	const rankedStocks = instruments.stocks
-		.map((stock, index) => ({ metric: latest?.stocks[index], stock }))
+		.map((stock, index) => ({ metric: currentSnapshot?.stocks[index], stock }))
 		.toSorted(
 			(left, right) =>
 				(right.metric?.dividendYield ?? -1) -
@@ -119,11 +122,11 @@ export function App() {
 					天和完整财年的分红收益率。
 				</p>
 				<div
-					className={`status-line${latestState.status === "error" ? " status-line--error" : ""}`}
+					className={`status-line${snapshotState.status === "error" ? " status-line--error" : ""}`}
 					role="status"
 				>
 					<span className="status-dot" aria-hidden="true" />
-					{statusCopy(latestState)}
+					{statusCopy(snapshotState)}
 				</div>
 			</header>
 
@@ -145,7 +148,7 @@ export function App() {
 
 					<div className="card-grid">
 						{instruments.futuresProducts.map((product) => {
-							const contracts = (latest?.futures ?? [])
+							const contracts = (currentSnapshot?.futures ?? [])
 								.filter((metric) => metric.productCode === product.code)
 								.toSorted((left, right) =>
 									left.expiryDate.localeCompare(right.expiryDate),
@@ -278,7 +281,7 @@ export function App() {
 							);
 						})}
 					</div>
-					{latest ? (
+					{currentSnapshot ? (
 						<ChartPanel title="股息率横向比较">
 							<MetricBarChart
 								data={rankedStocks.map(({ metric, stock }) => ({
@@ -294,7 +297,7 @@ export function App() {
 					) : null}
 				</section>
 
-				<HistorySection latest={latest} />
+				<HistorySection currentSnapshot={currentSnapshot} />
 
 				<aside className="method-note" aria-labelledby="method-title">
 					<p className="eyebrow">口径说明</p>

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 
 import { instruments } from "./config";
-import type { HistoryData, LatestData } from "./data";
+import type { HistoryData, MarketSnapshot } from "./data";
 import type { FiscalYearTransition } from "./MetricLineChart";
 import { useHistoryData } from "./useHistoryData";
 
@@ -46,10 +46,13 @@ function filterRange(
 
 function currentContracts(
 	history: HistoryData,
-	latest: LatestData | null,
+	currentSnapshot: MarketSnapshot | null,
 ): readonly string[] {
 	const newest = history.snapshots.at(-1);
-	const source = latest?.marketDate === newest?.marketDate ? latest : newest;
+	const source =
+		currentSnapshot?.marketDate === newest?.marketDate
+			? currentSnapshot
+			: newest;
 	return [
 		...new Set(source?.futures.map((metric) => metric.contractCode) ?? []),
 	];
@@ -124,9 +127,9 @@ export function fiscalYearTransitions(
 }
 
 export function HistorySection({
-	latest,
+	currentSnapshot,
 }: {
-	readonly latest: LatestData | null;
+	readonly currentSnapshot: MarketSnapshot | null;
 }) {
 	const { load, state } = useHistoryData();
 
@@ -141,7 +144,10 @@ export function HistorySection({
 			</div>
 
 			{state.status === "ready" ? (
-				<HistoryExplorer history={state.data} latest={latest} />
+				<HistoryExplorer
+					history={state.data}
+					currentSnapshot={currentSnapshot}
+				/>
 			) : (
 				<div className="history-gate">
 					<p>
@@ -167,12 +173,12 @@ export function HistorySection({
 
 function HistoryExplorer({
 	history,
-	latest,
+	currentSnapshot,
 }: {
 	readonly history: HistoryData;
-	readonly latest: LatestData | null;
+	readonly currentSnapshot: MarketSnapshot | null;
 }) {
-	const contracts = currentContracts(history, latest);
+	const contracts = currentContracts(history, currentSnapshot);
 	const [kind, setKind] = useState<MetricKind>("futures");
 	const [contractCode, setContractCode] = useState(contracts[0] ?? "");
 	const firstStock = instruments.stocks[0];
