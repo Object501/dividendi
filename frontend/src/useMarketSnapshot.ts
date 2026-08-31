@@ -2,40 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { loadClientSnapshot, saveClientSnapshot } from "./clientSnapshot";
 import { instruments } from "./config";
-import { discoverEastmoneyContracts, fetchEastmoneyQuotes } from "./eastmoney";
-import type { EastmoneyContract } from "./eastmoneyTypes";
-import { loadHistoryData } from "./historyData";
-import type { MarketSnapshot } from "./marketSnapshotTypes";
 import {
-	isChineseMarketRefreshWindow,
-	shanghaiDate,
-	tradingDayPhase,
-} from "./marketTime";
-import { mergeEastmoneyQuotes } from "./mergeEastmoneyQuotes";
-import { fetchTradingCalendar, type TradingCalendar } from "./tradingCalendar";
+	defaultMarketSnapshotRefreshDependencies,
+	MarketSnapshotRefresher,
+} from "./marketSnapshotRefresh";
+import type {
+	LastGoodMarketSnapshot,
+	MarketSnapshotState,
+} from "./marketSnapshotState";
+import type { MarketSnapshot } from "./marketSnapshotTypes";
+import { isChineseMarketRefreshWindow, shanghaiDate } from "./marketTime";
 
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const MINIMUM_REFRESH_GAP_MS = 5 * 60 * 1000;
-export type MarketSnapshotState =
-	| { readonly status: "loading"; readonly data: null }
-	| {
-			readonly status: "ready";
-			readonly data: MarketSnapshot;
-			readonly source: MarketSnapshotSource;
-	  }
-	| {
-			readonly status: "error";
-			readonly data: MarketSnapshot | null;
-			readonly reason: string;
-			readonly source: MarketSnapshotSource | null;
-	  };
-
-export type MarketSnapshotSource = "browser" | "history" | "local";
-
-interface LastGoodData {
-	readonly data: MarketSnapshot;
-	readonly source: MarketSnapshotSource;
-}
 
 function storedSnapshot(): MarketSnapshot | null {
 	try {
@@ -53,38 +32,37 @@ function persistSnapshot(data: MarketSnapshot): void {
 	}
 }
 
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : "未知错误";
-}
-
 export function useMarketSnapshot(): MarketSnapshotState {
 	const initial = useRef<MarketSnapshot | null | undefined>(undefined);
 	if (initial.current === undefined) {
 		initial.current = storedSnapshot();
 	}
+	const initialSnapshot = initial.current;
 	const [state, setState] = useState<MarketSnapshotState>(() =>
-		initial.current === null
+		initialSnapshot === null
 			? { status: "loading", data: null }
-			: {
-					status: "ready",
-					data: initial.current as MarketSnapshot,
-					source: "local",
-				},
+			: { status: "ready", data: initialSnapshot, source: "local" },
 	);
-	const baseline = useRef<MarketSnapshot | null>(null);
-	const calendar = useRef<TradingCalendar | null>(null);
-	const contracts = useRef<readonly EastmoneyContract[] | null>(null);
-	const contractsDate = useRef<string | null>(null);
-	const historyRequestDate = useRef<string | null>(null);
-	const lastGood = useRef<LastGoodData | null>(
-		initial.current === null || initial.current === undefined
-			? null
-			: { data: initial.current, source: "local" },
-	);
+	const mounted = useRef(false);
 	const lastAttempt = useRef(0);
 	const inFlight = useRef<Promise<void> | null>(null);
 	const activeRequest = useRef<AbortController | null>(null);
-	const mounted = useRef(false);
+	const refresher = useRef<MarketSnapshotRefresher | null>(null);
+	if (refresher.current === null) {
+		const initialLastGood: LastGoodMarketSnapshot | null =
+			initialSnapshot === null
+				? null
+				: { data: initialSnapshot, source: "local" };
+		refresher.current = new MarketSnapshotRefresher(
+			initialLastGood,
+			(next) => {
+				if (mounted.current) {
+					setState(next);
+				}
+			},
+			defaultMarketSnapshotRefreshDependencies(persistSnapshot),
+		);
+	}
 
 	const refresh = useCallback(() => {
 		const now = Date.now();
@@ -99,125 +77,31 @@ export function useMarketSnapshot(): MarketSnapshotState {
 			return;
 		}
 		lastAttempt.current = now;
-		const today = shanghaiDate(new Date(now));
 		const controller = new AbortController();
 		activeRequest.current = controller;
-
-		const request = (async () => {
-			try {
-				const history = await loadHistoryData(
-					historyRequestDate.current !== null &&
-						historyRequestDate.current !== today,
-				);
-				const daily = history.snapshots.at(-1);
-				if (daily === undefined) {
-					throw new Error("历史数据没有日终快照");
+		const request = refresher.current
+			?.refresh(shanghaiDate(new Date(now)), controller.signal)
+			.finally(() => {
+				if (inFlight.current === request) {
+					inFlight.current = null;
+					activeRequest.current = null;
 				}
-				historyRequestDate.current = today;
-				const basisAdvanced =
-					baseline.current === null ||
-					daily.marketDate > baseline.current.marketDate;
-				const shouldAdoptDaily =
-					basisAdvanced &&
-					(lastGood.current === null ||
-						daily.marketDate >= lastGood.current.data.marketDate);
-				baseline.current = daily;
-				if (shouldAdoptDaily) {
-					lastGood.current = { data: daily, source: "history" };
-					persistSnapshot(daily);
-					if (mounted.current) {
-						setState({ status: "ready", data: daily, source: "history" });
-					}
-				}
-			} catch {
-				// A validated local snapshot can still be refreshed with browser quotes.
-			}
-
-			const basis = baseline.current ?? lastGood.current?.data ?? null;
-			if (basis === null) {
-				if (mounted.current) {
-					setState({
-						status: "error",
-						data: null,
-						reason: "无法读取历史基准",
-						source: null,
-					});
-				}
-				return;
-			}
-
-			try {
-				try {
-					calendar.current ??= await fetchTradingCalendar({
-						signal: controller.signal,
-					});
-				} catch {
-					throw new Error("休市日历请求失败");
-				}
-				if (contracts.current === null || contractsDate.current !== today) {
-					try {
-						contracts.current = await discoverEastmoneyContracts(instruments, {
-							signal: controller.signal,
-						});
-					} catch {
-						throw new Error("期货合约目录请求失败");
-					}
-					contractsDate.current = today;
-				}
-				const quotes = await fetchEastmoneyQuotes(
-					instruments,
-					contracts.current,
-					{
-						signal: controller.signal,
-					},
-				);
-				const live = mergeEastmoneyQuotes(
-					basis,
-					baseline.current === null ? tradingDayPhase(basis.fetchedAt) : "eod",
-					quotes,
-					instruments,
-					calendar.current,
-				);
-				lastGood.current = { data: live, source: "browser" };
-				persistSnapshot(live);
-				if (mounted.current) {
-					setState({ status: "ready", data: live, source: "browser" });
-				}
-			} catch (error) {
-				if (controller.signal.aborted) {
-					return;
-				}
-				calendar.current = null;
-				contracts.current = null;
-				contractsDate.current = null;
-				if (mounted.current) {
-					setState({
-						status: "error",
-						data: lastGood.current?.data ?? null,
-						reason: errorMessage(error),
-						source: lastGood.current?.source ?? null,
-					});
-				}
-			}
-		})().finally(() => {
-			if (inFlight.current === request) {
-				inFlight.current = null;
-				activeRequest.current = null;
-			}
-		});
-		inFlight.current = request;
+			});
+		if (request !== undefined) {
+			inFlight.current = request;
+		}
 	}, []);
 
 	useEffect(() => {
 		mounted.current = true;
-		void refresh();
+		refresh();
 		const refreshIfActive = () => {
 			if (
 				document.visibilityState === "visible" &&
 				navigator.onLine &&
 				isChineseMarketRefreshWindow(new Date())
 			) {
-				void refresh();
+				refresh();
 			}
 		};
 		const timer = window.setInterval(refreshIfActive, REFRESH_INTERVAL_MS);
@@ -236,4 +120,8 @@ export function useMarketSnapshot(): MarketSnapshotState {
 	return state;
 }
 
+export type {
+	MarketSnapshotSource,
+	MarketSnapshotState,
+} from "./marketSnapshotState";
 export { isChineseMarketRefreshWindow } from "./marketTime";

@@ -1,6 +1,6 @@
 import { shanghaiTimeFormat } from "./formatters";
+import type { MarketSnapshotState } from "./marketSnapshotState";
 import type { Theme } from "./theme";
-import type { MarketSnapshotState } from "./useMarketSnapshot";
 
 function statusCopy(state: MarketSnapshotState): string {
 	if (state.status === "loading") {
