@@ -1,8 +1,21 @@
 name: Update market data
+run-name: Update market data (${{ github.event.schedule || inputs.mode }})
 
 on:
   schedule:
-    - cron: "17 9-15 * * 1-5"
+    - cron: "17 9 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 10 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 11 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 12 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 13 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 14 * * 1-5"
+      timezone: Asia/Shanghai
+    - cron: "17 15 * * 1-5"
       timezone: Asia/Shanghai
     - cron: "37 18 * * *"
       timezone: Asia/Shanghai
@@ -63,7 +76,13 @@ jobs:
         run: |
           if [[ "$EVENT_NAME" == "schedule" ]]; then
             case "$SCHEDULE" in
-              "17 9-15 * * 1-5") mode=latest ;;
+              "17 9 * * 1-5") mode=latest ;;
+              "17 10 * * 1-5") mode=latest ;;
+              "17 11 * * 1-5") mode=latest ;;
+              "17 12 * * 1-5") mode=latest ;;
+              "17 13 * * 1-5") mode=latest ;;
+              "17 14 * * 1-5") mode=latest ;;
+              "17 15 * * 1-5") mode=latest ;;
               "37 18 * * *") mode=history ;;
               *)
                 echo "Unknown schedule: $SCHEDULE" >&2
