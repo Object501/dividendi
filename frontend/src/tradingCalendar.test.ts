@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	contractExpiry,
-	decrementSinceBaseline,
+	elapsedTradingDays,
 	parseTradingCalendar,
 	remainingTradingDays,
 } from "./tradingCalendar";
@@ -49,11 +49,32 @@ describe("trading calendar", () => {
 
 	it("adjusts an EOD baseline only for elapsed sessions", () => {
 		expect(
-			decrementSinceBaseline("2026-09-23", "2026-09-28", false, calendar),
+			elapsedTradingDays(
+				"2026-09-23",
+				"eod",
+				"2026-09-28",
+				"intraday",
+				calendar,
+			),
 		).toBe(1);
 		expect(
-			decrementSinceBaseline("2026-09-23", "2026-09-28", true, calendar),
+			elapsedTradingDays("2026-09-23", "eod", "2026-09-28", "eod", calendar),
 		).toBe(2);
+	});
+
+	it("advances a same-day intraday snapshot after the close", () => {
+		expect(
+			elapsedTradingDays(
+				"2026-09-23",
+				"intraday",
+				"2026-09-23",
+				"eod",
+				calendar,
+			),
+		).toBe(1);
+		expect(
+			elapsedTradingDays("2026-09-23", "eod", "2026-09-23", "eod", calendar),
+		).toBe(0);
 	});
 
 	it("rejects years without a published holiday calendar", () => {

@@ -131,7 +131,13 @@ describe("东方财富浏览器行情", () => {
 			],
 		};
 
-		const merged = mergeEastmoneyQuotes(baseline, live, instruments, calendar);
+		const merged = mergeEastmoneyQuotes(
+			baseline,
+			"eod",
+			live,
+			instruments,
+			calendar,
+		);
 
 		expect(merged.marketDate).toBe("2026-08-31");
 		expect(merged.futures[0]).toMatchObject({
@@ -180,8 +186,94 @@ describe("东方财富浏览器行情", () => {
 		};
 
 		expect(
-			mergeEastmoneyQuotes(baseline, live, instruments, calendar).futures[0]
-				?.remainingTradingDays,
+			mergeEastmoneyQuotes(baseline, "eod", live, instruments, calendar)
+				.futures[0]?.remainingTradingDays,
 		).toBe(12);
+	});
+
+	it("同日盘中基准在收盘后扣除当天交易日", () => {
+		const intradayBaseline = {
+			...baseline,
+			fetchedAt: "2026-08-31T02:00:00.000Z",
+			marketDate: "2026-08-31",
+		};
+		const live: EastmoneyQuotes = {
+			fetchedAt: "2026-08-31T07:15:00.000Z",
+			marketDate: "2026-08-31",
+			futures: [
+				{
+					code: "IM2609",
+					market: "220",
+					price: 6500,
+					productCode: "IM",
+					updatedAt: 1788160500,
+				},
+			],
+			spots: [
+				{
+					code: "000852",
+					market: "SH",
+					price: 6600,
+					updatedAt: 1788160500,
+				},
+				{
+					code: "601939",
+					market: "SH",
+					price: 10,
+					updatedAt: 1788160500,
+				},
+			],
+		};
+
+		expect(
+			mergeEastmoneyQuotes(
+				intradayBaseline,
+				"intraday",
+				live,
+				instruments,
+				calendar,
+			).futures[0]?.remainingTradingDays,
+		).toBe(11);
+	});
+
+	it("任一在交易合约无法计算时拒绝生成不完整快照", () => {
+		const live: EastmoneyQuotes = {
+			fetchedAt: "2026-08-31T02:00:00.000Z",
+			marketDate: "2026-08-31",
+			futures: [
+				{
+					code: "IM2609",
+					market: "220",
+					price: 6500,
+					productCode: "IM",
+					updatedAt: 1788141600,
+				},
+				{
+					code: "IM2803",
+					market: "220",
+					price: 6400,
+					productCode: "IM",
+					updatedAt: 1788141600,
+				},
+			],
+			spots: [
+				{
+					code: "000852",
+					market: "SH",
+					price: 6600,
+					updatedAt: 1788141600,
+				},
+				{
+					code: "601939",
+					market: "SH",
+					price: 10,
+					updatedAt: 1788141600,
+				},
+			],
+		};
+
+		expect(() =>
+			mergeEastmoneyQuotes(baseline, "eod", live, instruments, calendar),
+		).toThrow("无法计算期货 IM2803");
 	});
 });

@@ -6,9 +6,10 @@ import type {
 import type { LatestData } from "./data";
 import {
 	contractExpiry,
-	decrementSinceBaseline,
+	elapsedTradingDays,
 	remainingTradingDays,
 	type TradingCalendar,
+	type TradingDayPhase,
 } from "./tradingCalendar";
 
 const FUTURES_MARKET = "220";
@@ -392,7 +393,7 @@ export async function fetchEastmoneyQuotes(
 	};
 }
 
-function isAfterMarketClose(timestamp: string): boolean {
+export function snapshotPhase(timestamp: string): TradingDayPhase {
 	const parts = Object.fromEntries(
 		new Intl.DateTimeFormat("en", {
 			hour: "2-digit",
@@ -404,11 +405,14 @@ function isAfterMarketClose(timestamp: string): boolean {
 			.filter((part) => part.type !== "literal")
 			.map((part) => [part.type, part.value]),
 	);
-	return Number(parts.hour) * 60 + Number(parts.minute) >= 15 * 60;
+	return Number(parts.hour) * 60 + Number(parts.minute) >= 15 * 60
+		? "eod"
+		: "intraday";
 }
 
 export function mergeEastmoneyQuotes(
 	baseline: LatestData,
+	baselinePhase: TradingDayPhase,
 	live: EastmoneyQuotes,
 	instruments: InstrumentConfig,
 	calendar: TradingCalendar,
@@ -425,13 +429,12 @@ export function mergeEastmoneyQuotes(
 	const baselineFutures = new Map(
 		baseline.futures.map((metric) => [metric.contractCode, metric]),
 	);
-	const afterNewClose =
-		live.marketDate > baseline.marketDate && isAfterMarketClose(live.fetchedAt);
+	const livePhase = snapshotPhase(live.fetchedAt);
 	const futures = live.futures.flatMap((quote) => {
 		const previous = baselineFutures.get(quote.code);
 		const indexLevel = underlyingByProduct.get(quote.productCode ?? "");
 		if (indexLevel === undefined || quote.productCode === undefined) {
-			return [];
+			throw new Error(`浏览器行情无法匹配期货 ${quote.code} 的标的指数`);
 		}
 		let expiryDate: string;
 		let remaining: number;
@@ -444,18 +447,20 @@ export function mergeEastmoneyQuotes(
 					? remainingTradingDays(
 							live.marketDate,
 							expiryDate,
-							!isAfterMarketClose(live.fetchedAt),
+							livePhase === "intraday",
 							calendar,
 						)
 					: previous.remainingTradingDays -
-						decrementSinceBaseline(
+						elapsedTradingDays(
 							baseline.marketDate,
+							baselinePhase,
 							live.marketDate,
-							afterNewClose,
+							livePhase,
 							calendar,
 						);
-		} catch {
-			return [];
+		} catch (error) {
+			const reason = error instanceof Error ? error.message : "未知错误";
+			throw new Error(`浏览器行情无法计算期货 ${quote.code}：${reason}`);
 		}
 		if (remaining <= 0) {
 			return [];

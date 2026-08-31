@@ -8,6 +8,7 @@ import {
 	type EastmoneyContract,
 	fetchEastmoneyQuotes,
 	mergeEastmoneyQuotes,
+	snapshotPhase,
 } from "./eastmoney";
 import { loadHistoryData } from "./historyData";
 import { fetchTradingCalendar, type TradingCalendar } from "./tradingCalendar";
@@ -157,6 +158,7 @@ export function useLatestData(): LatestDataState {
 			const quotes = await fetchEastmoneyQuotes(instruments, contracts.current);
 			const live = mergeEastmoneyQuotes(
 				basis,
+				baseline.current === null ? snapshotPhase(basis.fetchedAt) : "eod",
 				quotes,
 				instruments,
 				calendar.current,

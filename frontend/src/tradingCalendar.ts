@@ -6,6 +6,8 @@ export interface TradingCalendar {
 	readonly coveredYears: ReadonlySet<number>;
 }
 
+export type TradingDayPhase = "eod" | "intraday";
+
 type Fetcher = typeof fetch;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -162,12 +164,18 @@ export function remainingTradingDays(
 	);
 }
 
-export function decrementSinceBaseline(
+export function elapsedTradingDays(
 	baselineDate: string,
+	baselinePhase: TradingDayPhase,
 	liveDate: string,
-	afterClose: boolean,
+	livePhase: TradingDayPhase,
 	calendar: TradingCalendar,
 ): number {
-	const end = afterClose ? liveDate : addDays(liveDate, -1);
-	return tradingDaysBetween(addDays(baselineDate, 1), end, calendar);
+	if (liveDate < baselineDate) {
+		throw new Error("新行情日期不能早于计算基准");
+	}
+	const baselineStart =
+		baselinePhase === "intraday" ? baselineDate : addDays(baselineDate, 1);
+	const liveStart = livePhase === "intraday" ? liveDate : addDays(liveDate, 1);
+	return tradingDaysBetween(baselineStart, addDays(liveStart, -1), calendar);
 }
