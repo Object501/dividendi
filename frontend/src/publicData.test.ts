@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import snapshotFixture from "../../collector/tests/fixtures/snapshot.json";
 import { instruments } from "./config";
-import { parseHistoryData, parseMarketSnapshot } from "./data";
+import { parseHistoryData } from "./historyDocument";
+import { parseMarketSnapshot } from "./marketSnapshotCodec";
 
 describe("parseMarketSnapshot", () => {
 	it("accepts the collector fixture", () => {

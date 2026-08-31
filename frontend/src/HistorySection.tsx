@@ -1,8 +1,9 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 
 import { instruments } from "./config";
-import type { HistoryData, MarketSnapshot } from "./data";
+import type { HistoryData } from "./historyDocument";
 import type { FiscalYearTransition } from "./MetricLineChart";
+import type { MarketSnapshot } from "./marketSnapshotTypes";
 import { useHistoryData } from "./useHistoryData";
 
 const MetricLineChart = lazy(() => import("./MetricLineChart"));

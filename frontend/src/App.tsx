@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 
 import { instruments } from "./config";
-import type { FuturesMetric } from "./data";
 import { HistorySection } from "./HistorySection";
+import type { FuturesMetric } from "./marketSnapshotTypes";
 import { useTheme } from "./theme";
 import {
 	type MarketSnapshotState,

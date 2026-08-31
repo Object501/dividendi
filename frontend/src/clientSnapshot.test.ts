@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "../../collector/tests/fixtures/snapshot.json";
 import { loadClientSnapshot, saveClientSnapshot } from "./clientSnapshot";
 import { instruments } from "./config";
-import { parseMarketSnapshot } from "./data";
+import { parseMarketSnapshot } from "./marketSnapshotCodec";
 
 class MemoryStorage {
 	private readonly values = new Map<string, string>();

@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import type { InstrumentConfig } from "./config";
-import type { MarketSnapshot } from "./data";
 import {
-	type EastmoneyQuotes,
-	mergeEastmoneyQuotes,
 	parseContractCatalog,
 	parseFuturesQuotes,
 	parseProductCatalog,
 	parseSpotQuotes,
-} from "./eastmoney";
+} from "./eastmoneyParsers";
+import type { EastmoneyQuotes } from "./eastmoneyTypes";
 import fixture from "./fixtures/eastmoney-quotes.json";
+import type { MarketSnapshot } from "./marketSnapshotTypes";
+import { mergeEastmoneyQuotes } from "./mergeEastmoneyQuotes";
 import { parseTradingCalendar } from "./tradingCalendar";
 
 const instruments: InstrumentConfig = {

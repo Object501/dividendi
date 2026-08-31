@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { instruments } from "./config";
-import { parseHistoryData } from "./data";
+import { parseHistoryData } from "./historyDocument";
 
 const dataDirectory = process.env.DIVIDENDI_CONTRACT_DATA_DIR;
 

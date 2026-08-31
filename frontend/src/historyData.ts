@@ -1,5 +1,5 @@
 import { instruments } from "./config";
-import { type HistoryData, parseHistoryData } from "./data";
+import { type HistoryData, parseHistoryData } from "./historyDocument";
 import { fetchJson } from "./request";
 
 const historyDataUrl =

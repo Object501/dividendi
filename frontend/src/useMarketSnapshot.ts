@@ -2,19 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { loadClientSnapshot, saveClientSnapshot } from "./clientSnapshot";
 import { instruments } from "./config";
-import type { MarketSnapshot } from "./data";
-import {
-	discoverEastmoneyContracts,
-	type EastmoneyContract,
-	fetchEastmoneyQuotes,
-	mergeEastmoneyQuotes,
-} from "./eastmoney";
+import { discoverEastmoneyContracts, fetchEastmoneyQuotes } from "./eastmoney";
+import type { EastmoneyContract } from "./eastmoneyTypes";
 import { loadHistoryData } from "./historyData";
+import type { MarketSnapshot } from "./marketSnapshotTypes";
 import {
 	isChineseMarketRefreshWindow,
 	shanghaiDate,
 	tradingDayPhase,
 } from "./marketTime";
+import { mergeEastmoneyQuotes } from "./mergeEastmoneyQuotes";
 import { fetchTradingCalendar, type TradingCalendar } from "./tradingCalendar";
 
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;

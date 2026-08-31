@@ -1,9 +1,6 @@
 import type { InstrumentConfig } from "./config";
-import {
-	type MarketSnapshot,
-	marketSnapshotJson,
-	parseMarketSnapshot,
-} from "./data";
+import { marketSnapshotJson, parseMarketSnapshot } from "./marketSnapshotCodec";
+import type { MarketSnapshot } from "./marketSnapshotTypes";
 
 const STORAGE_KEY = "dividendi:snapshot:v1";
 const LEGACY_STORAGE_KEY = "dividendi:latest:v1";

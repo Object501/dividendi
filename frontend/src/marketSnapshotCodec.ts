@@ -1,51 +1,12 @@
 import type { InstrumentConfig } from "./config";
-import {
-	type PublicDataValidator,
-	validateHistoryDocument,
-	validateMarketSnapshot,
-} from "./generated/publicDataValidators.js";
-
-export interface FuturesMetric {
-	readonly productCode: string;
-	readonly contractCode: string;
-	readonly expiryDate: string;
-	readonly indexLevel: number;
-	readonly futuresPrice: number;
-	readonly discountPoints: number;
-	readonly remainingTradingDays: number;
-	readonly dailyDiscountPoints: number;
-	readonly source: string;
-}
-
-export interface CompletedFiscalYearMetric {
-	readonly dividendPerShare: number;
-	readonly dividendYield: number;
-	readonly fiscalYear: number;
-}
-
-export interface StockMetric {
-	readonly market: string;
-	readonly code: string;
-	readonly latestPrice: number;
-	readonly implementedDividendPerShare: number;
-	readonly dividendYield: number;
-	readonly priceSource: string;
-	readonly dividendSource: string;
-	readonly completedFiscalYear?: CompletedFiscalYearMetric;
-}
-
-export interface MarketSnapshot {
-	readonly schemaVersion: 1;
-	readonly marketDate: string;
-	readonly fetchedAt: string;
-	readonly futures: readonly FuturesMetric[];
-	readonly stocks: readonly StockMetric[];
-}
-
-export interface HistoryData {
-	readonly schemaVersion: 1;
-	readonly snapshots: readonly MarketSnapshot[];
-}
+import { validateMarketSnapshot } from "./generated/publicDataValidators.js";
+import type {
+	CompletedFiscalYearMetric,
+	FuturesMetric,
+	MarketSnapshot,
+	StockMetric,
+} from "./marketSnapshotTypes";
+import { assertStructure } from "./publicDataValidation";
 
 function decimalString(value: number): string {
 	if (!Number.isFinite(value)) {
@@ -117,25 +78,6 @@ function optionalDecimalNumber(
 	return record[key] === undefined
 		? undefined
 		: decimalNumber(record, key, path);
-}
-
-function validationPath(documentName: string, instancePath: string): string {
-	return `${documentName}${instancePath.replaceAll("/", ".")}`;
-}
-
-function assertStructure(
-	value: unknown,
-	validator: PublicDataValidator,
-	documentName: string,
-): void {
-	if (validator(value)) {
-		return;
-	}
-	const error = validator.errors?.[0];
-	const path = validationPath(documentName, error?.instancePath ?? "");
-	throw new Error(
-		`${path} 不符合 public-data-v1 JSON Schema${error?.message === undefined ? "" : `：${error.message}`}`,
-	);
 }
 
 function optionalIntegerValue(
@@ -295,10 +237,10 @@ export function parseMarketSnapshot(
 	instruments: InstrumentConfig,
 ): MarketSnapshot {
 	assertStructure(value, validateMarketSnapshot, "snapshot");
-	return parseStructuredMarketSnapshot(value, instruments);
+	return parseMarketSnapshotStructure(value, instruments);
 }
 
-function parseStructuredMarketSnapshot(
+export function parseMarketSnapshotStructure(
 	value: unknown,
 	instruments: InstrumentConfig,
 ): MarketSnapshot {
@@ -342,37 +284,4 @@ function parseStructuredMarketSnapshot(
 	}
 
 	return { schemaVersion: 1, marketDate, fetchedAt, futures, stocks };
-}
-
-export function parseHistoryData(
-	value: unknown,
-	instruments: InstrumentConfig,
-): HistoryData {
-	assertStructure(value, validateHistoryDocument, "history");
-	const record = objectValue(value);
-	const snapshots = arrayValue(record, "snapshots").map((snapshot) =>
-		parseStructuredMarketSnapshot(snapshot, instruments),
-	);
-	const dates = snapshots.map((snapshot) => snapshot.marketDate);
-	if (
-		dates.some((marketDate, index) => {
-			const previousDate = dates[index - 1];
-			return previousDate !== undefined && marketDate <= previousDate;
-		})
-	) {
-		throw new Error("历史快照必须按交易日严格升序排列");
-	}
-	const millisecondsPerDay = 24 * 60 * 60 * 1000;
-	const newestDate = dates.at(-1);
-	if (newestDate === undefined) {
-		throw new Error("history.snapshots 必须是非空数组");
-	}
-	const newest = Date.parse(`${newestDate}T00:00:00Z`);
-	const cutoff = newest - 365 * millisecondsPerDay;
-	if (
-		dates.some((marketDate) => Date.parse(`${marketDate}T00:00:00Z`) <= cutoff)
-	) {
-		throw new Error("历史快照超出 365 天滚动窗口");
-	}
-	return { schemaVersion: 1, snapshots };
 }
