@@ -48,7 +48,7 @@ jobs:
           fi
           printf '%s\n' "$validation_title" > "$RUNNER_TEMP/pr-title.txt"
       - name: Checkout trusted base
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
