@@ -60,9 +60,10 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - [x] Browser-side delayed quotes and local persistence; a weekday EOD workflow publishes only rolling history.
 - [x] Provider parsing, refresh orchestration, history transforms, UI modules, and styles are separated and tested.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
-- [ ] Review provider attribution and redistribution terms before public launch.
+- [x] GPL-3.0 dependency compatibility and provider terms audited.
+- [ ] Publish dependency notices and resolve public market-data permissions before launch.
 
-Current stage: the static vertical slice is deployed. Next work is the provider-terms review and refinements from real-device use.
+Current stage: the static vertical slice is deployed. Next work is license-notice and provider-permission remediation, plus refinements from real-device use.
 
 ## Working rules
 
