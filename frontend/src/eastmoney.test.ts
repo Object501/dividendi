@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { InstrumentConfig } from "./config";
 import {
+	EastmoneyQuotesNotReadyError,
+	fetchEastmoneyQuotes,
+} from "./eastmoney";
+import {
 	parseContractCatalog,
 	parseFuturesQuotes,
 	parseProductCatalog,
@@ -102,6 +106,65 @@ describe("东方财富浏览器行情", () => {
 				updatedAt: 1787899500,
 			},
 		]);
+	});
+
+	it("盘前最新价为零时使用昨收并保持完整行情", () => {
+		const spotQuotes = structuredClone(fixture.spotQuotes);
+		const stock = spotQuotes.data.diff[1];
+		if (stock === undefined) {
+			throw new Error("测试夹具缺少股票行情");
+		}
+		stock.f2 = 0;
+		stock.f18 = 9.87;
+
+		expect(parseSpotQuotes(spotQuotes, instruments)[1]).toMatchObject({
+			code: "601939",
+			price: 9.87,
+		});
+	});
+
+	it("最新价和昨收均无效时拒绝不完整行情", () => {
+		const spotQuotes = structuredClone(fixture.spotQuotes);
+		const stock = spotQuotes.data.diff[1];
+		if (stock === undefined) {
+			throw new Error("测试夹具缺少股票行情");
+		}
+		stock.f2 = 0;
+		stock.f18 = 0;
+
+		expect(() => parseSpotQuotes(spotQuotes, instruments)).toThrow(
+			"f2 和 东方财富现货行情.data.diff[1].f18",
+		);
+	});
+
+	it("盘前各市场日期尚未同步时保留日终基准", async () => {
+		const spotQuotes = structuredClone(fixture.spotQuotes);
+		const stock = spotQuotes.data.diff[1];
+		if (stock === undefined) {
+			throw new Error("测试夹具缺少股票行情");
+		}
+		stock.f2 = 0;
+		stock.f18 = 9.87;
+		for (const quote of spotQuotes.data.diff) {
+			quote.f124 += 24 * 60 * 60;
+		}
+		const fetcher = async (input: RequestInfo | URL): Promise<Response> =>
+			new Response(
+				JSON.stringify(
+					String(input).includes("push2delay")
+						? spotQuotes
+						: fixture.futuresQuotes,
+				),
+				{ status: 200 },
+			);
+
+		await expect(
+			fetchEastmoneyQuotes(
+				instruments,
+				[{ contractCode: "IM2609", market: "220", productCode: "IM" }],
+				{ fetcher },
+			),
+		).rejects.toBeInstanceOf(EastmoneyQuotesNotReadyError);
 	});
 
 	it("用实时价格重算指标并在收盘后推进剩余交易日", () => {

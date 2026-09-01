@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import snapshotFixture from "../../collector/tests/fixtures/snapshot.json";
 import { instruments } from "./config";
+import { EastmoneyQuotesNotReadyError } from "./eastmoney";
 import { parseMarketSnapshot } from "./marketSnapshotCodec";
 import {
 	type MarketSnapshotRefreshDependencies,
@@ -123,5 +124,27 @@ describe("market snapshot refresher", () => {
 		]);
 		expect(deps.fetchCalendar).not.toHaveBeenCalled();
 		expect(deps.fetchQuotes).not.toHaveBeenCalled();
+	});
+
+	it("keeps the ready history state while delayed markets synchronize", async () => {
+		const states: MarketSnapshotState[] = [];
+		const deps = dependencies({
+			fetchQuotes: vi
+				.fn()
+				.mockRejectedValue(
+					new EastmoneyQuotesNotReadyError("东方财富各市场行情尚未同步"),
+				),
+		});
+		const refresher = new MarketSnapshotRefresher(
+			null,
+			(state) => states.push(state),
+			deps,
+		);
+
+		await refresher.refresh("2026-08-31", new AbortController().signal);
+
+		expect(states).toEqual([
+			{ data: daily, source: "history", status: "ready" },
+		]);
 	});
 });

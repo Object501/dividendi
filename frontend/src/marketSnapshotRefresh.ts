@@ -1,5 +1,9 @@
 import { instruments } from "./config";
-import { discoverEastmoneyContracts, fetchEastmoneyQuotes } from "./eastmoney";
+import {
+	discoverEastmoneyContracts,
+	EastmoneyQuotesNotReadyError,
+	fetchEastmoneyQuotes,
+} from "./eastmoney";
 import type { EastmoneyContract, EastmoneyQuotes } from "./eastmoneyTypes";
 import { loadHistoryData } from "./historyData";
 import type { HistoryData } from "./historyDocument";
@@ -83,7 +87,7 @@ export class MarketSnapshotRefresher {
 		try {
 			await this.refreshBrowserQuotes(basis, today, signal);
 		} catch (error) {
-			if (signal.aborted) {
+			if (signal.aborted || error instanceof EastmoneyQuotesNotReadyError) {
 				return;
 			}
 			this.calendar = null;

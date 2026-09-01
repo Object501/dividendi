@@ -53,6 +53,22 @@ function numberValue(
 	return field;
 }
 
+function spotPrice(value: Record<string, unknown>, path: string): number {
+	const latest = value.f2;
+	if (typeof latest === "number" && Number.isFinite(latest) && latest > 0) {
+		return latest;
+	}
+	const previousClose = value.f18;
+	if (
+		typeof previousClose === "number" &&
+		Number.isFinite(previousClose) &&
+		previousClose > 0
+	) {
+		return previousClose;
+	}
+	throw new Error(`${path}.f2 和 ${path}.f18 必须至少有一个有限正数`);
+}
+
 function nonNegativeIntegerValue(
 	value: Record<string, unknown>,
 	key: string,
@@ -181,7 +197,7 @@ export function parseSpotQuotes(
 			return {
 				code: instrument.code,
 				market: instrument.market,
-				price: numberValue(row, "f2", path),
+				price: spotPrice(row, path),
 				updatedAt: numberValue(row, "f124", path),
 			};
 		},

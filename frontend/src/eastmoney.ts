@@ -25,6 +25,8 @@ interface EastmoneyRequestOptions {
 	readonly signal?: AbortSignal;
 }
 
+export class EastmoneyQuotesNotReadyError extends Error {}
+
 function oldestTimestamp(quotes: readonly EastmoneyQuote[]): number {
 	if (quotes.length === 0) {
 		throw new Error("东方财富没有返回行情");
@@ -73,7 +75,7 @@ export async function fetchEastmoneyQuotes(
 	const { fetcher, signal } = options;
 	const spotIds = [...expectedSpotInstruments(instruments).keys()];
 	const spotParameters = new URLSearchParams({
-		fields: "f2,f12,f13,f14,f124",
+		fields: "f2,f18,f12,f13,f14,f124",
 		fltt: "2",
 		secids: spotIds.join(","),
 	});
@@ -105,7 +107,7 @@ export async function fetchEastmoneyQuotes(
 		allQuotes.map((quote) => shanghaiDate(new Date(quote.updatedAt * 1000))),
 	);
 	if (marketDates.size !== 1) {
-		throw new Error("东方财富行情日期不一致");
+		throw new EastmoneyQuotesNotReadyError("东方财富各市场行情尚未同步");
 	}
 	const timestamp = oldestTimestamp(allQuotes);
 	return {
