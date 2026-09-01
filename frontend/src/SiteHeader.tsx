@@ -2,7 +2,7 @@ import { shanghaiTimeFormat } from "./formatters";
 import type { MarketSnapshotState } from "./marketSnapshotState";
 import type { Theme } from "./theme";
 
-function statusCopy(state: MarketSnapshotState): string {
+export function statusCopy(state: MarketSnapshotState): string {
 	if (state.status === "loading") {
 		return "正在读取历史基准与浏览器行情";
 	}
@@ -11,15 +11,15 @@ function statusCopy(state: MarketSnapshotState): string {
 	}
 	const updatedAt = shanghaiTimeFormat.format(new Date(state.data.fetchedAt));
 	if (state.status === "error") {
-		return `浏览器更新失败：${state.reason}；显示 ${updatedAt} 的上次有效数据`;
+		return `浏览器更新失败：${state.reason}；上次有效行情 ${updatedAt}`;
 	}
 	if (state.source === "browser") {
-		return `行情日 ${state.data.marketDate} · ${updatedAt} 更新（约延迟 15 分钟）`;
+		return `行情日 ${state.data.marketDate} · 行情时间 ${updatedAt} · 浏览器更新（约延迟 15 分钟）`;
 	}
 	if (state.source === "history") {
-		return `行情日 ${state.data.marketDate} · ${updatedAt} 日终基准`;
+		return `行情日 ${state.data.marketDate} · 收盘时间 ${updatedAt} · 日终基准`;
 	}
-	return `行情日 ${state.data.marketDate} · ${updatedAt} 本机缓存，正在更新`;
+	return `行情日 ${state.data.marketDate} · 上次有效行情 ${updatedAt} · 本机缓存`;
 }
 
 export function SiteHeader({
