@@ -137,6 +137,18 @@ describe("东方财富浏览器行情", () => {
 		);
 	});
 
+	it("期货盘前尚无最新价时等待行情开始更新", () => {
+		const contracts = parseContractCatalog(fixture.contractCatalog, product);
+		const quote = fixture.futuresQuotes.list[0];
+		if (quote === undefined) {
+			throw new Error("测试夹具缺少期货行情");
+		}
+
+		expect(() =>
+			parseFuturesQuotes({ list: [{ ...quote, p: "-" }] }, contracts),
+		).toThrow(EastmoneyQuotesNotReadyError);
+	});
+
 	it("盘前各市场日期尚未同步时保留日终基准", async () => {
 		const spotQuotes = structuredClone(fixture.spotQuotes);
 		const stock = spotQuotes.data.diff[1];

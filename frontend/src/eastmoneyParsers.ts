@@ -11,6 +11,8 @@ import type {
 
 const FUTURES_MARKET = "220";
 
+export class EastmoneyQuotesNotReadyError extends Error {}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -67,6 +69,14 @@ function spotPrice(value: Record<string, unknown>, path: string): number {
 		return previousClose;
 	}
 	throw new Error(`${path}.f2 和 ${path}.f18 必须至少有一个有限正数`);
+}
+
+function futuresPrice(value: Record<string, unknown>, path: string): number {
+	const latest = value.p;
+	if (latest === null || latest === 0 || latest === "-" || latest === "--") {
+		throw new EastmoneyQuotesNotReadyError("东方财富期货行情尚未开始更新");
+	}
+	return numberValue(value, "p", path);
 }
 
 function nonNegativeIntegerValue(
@@ -238,7 +248,7 @@ export function parseFuturesQuotes(
 			return {
 				code: contractCode,
 				market,
-				price: numberValue(row, "p", path),
+				price: futuresPrice(row, path),
 				productCode: contract.productCode,
 				updatedAt: numberValue(row, "utime", path),
 			};

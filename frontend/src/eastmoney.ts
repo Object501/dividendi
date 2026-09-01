@@ -1,5 +1,6 @@
 import type { InstrumentConfig } from "./config";
 import {
+	EastmoneyQuotesNotReadyError,
 	expectedSpotInstruments,
 	parseContractCatalog,
 	parseFuturesQuotes,
@@ -25,7 +26,7 @@ interface EastmoneyRequestOptions {
 	readonly signal?: AbortSignal;
 }
 
-export class EastmoneyQuotesNotReadyError extends Error {}
+export { EastmoneyQuotesNotReadyError };
 
 function oldestTimestamp(quotes: readonly EastmoneyQuote[]): number {
 	if (quotes.length === 0) {
