@@ -30,6 +30,7 @@ function dependencies(
 	overrides: Partial<MarketSnapshotRefreshDependencies> = {},
 ): MarketSnapshotRefreshDependencies {
 	return {
+		claimBrowserRefresh: vi.fn().mockReturnValue(true),
 		discoverContracts: vi.fn().mockResolvedValue(contracts),
 		fetchCalendar: vi.fn().mockResolvedValue(calendar),
 		fetchQuotes: vi.fn().mockResolvedValue(quotes),
@@ -146,5 +147,44 @@ describe("market snapshot refresher", () => {
 		expect(states).toEqual([
 			{ data: daily, source: "history", status: "ready" },
 		]);
+	});
+
+	it("keeps history current while a persistent browser limit suppresses providers", async () => {
+		const states: MarketSnapshotState[] = [];
+		const deps = dependencies({
+			claimBrowserRefresh: vi.fn().mockReturnValue(false),
+		});
+		const refresher = new MarketSnapshotRefresher(
+			null,
+			(state) => states.push(state),
+			deps,
+		);
+
+		await refresher.refresh("2026-08-31", new AbortController().signal);
+
+		expect(states).toEqual([
+			{ data: daily, source: "history", status: "ready" },
+		]);
+		expect(deps.fetchCalendar).not.toHaveBeenCalled();
+		expect(deps.discoverContracts).not.toHaveBeenCalled();
+		expect(deps.fetchQuotes).not.toHaveBeenCalled();
+	});
+
+	it("does not consume the persistent limit for an already aborted request", async () => {
+		const states: MarketSnapshotState[] = [];
+		const deps = dependencies();
+		const refresher = new MarketSnapshotRefresher(
+			null,
+			(state) => states.push(state),
+			deps,
+		);
+		const aborted = new AbortController();
+		aborted.abort();
+
+		await refresher.refresh("2026-08-31", aborted.signal);
+		await refresher.refresh("2026-08-31", new AbortController().signal);
+
+		expect(deps.claimBrowserRefresh).toHaveBeenCalledTimes(1);
+		expect(deps.fetchQuotes).toHaveBeenCalledTimes(1);
 	});
 });

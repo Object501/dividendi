@@ -19,7 +19,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - Public financial decimals are JSON strings and are recomputed by Python and TypeScript. Publish only complete, common-date data.
 - `schema/public-data-v1.schema.json` is the only public JSON structure. Dev, test, typecheck, contract, and build commands generate untracked validators from it, then run handwritten numeric and semantic checks. For a new schema version, deploy a dual-version reader before changing the collector.
 - Publish only `history.json`; it replaces the same date and retains exactly `(newest - 365 days, newest]` of EOD trading-session closes. Never publish or write back intraday data.
-- The browser loads the newest history snapshot as its basis, downloads Eastmoney quotes, contracts, and published A-share closures, and persists the last valid computed snapshot only in local storage. Poll hourly only while visible, online, and within the China-market window, with a shared five-minute minimum gap.
+- The browser loads the newest history snapshot as its basis, downloads Eastmoney quotes, contracts, and published A-share closures, and persists the last valid computed snapshot only in local storage. Poll hourly only while visible, online, and within the China-market window, with a persistent shared five-minute minimum gap that counts failed attempts.
 - One weekday 19:23 Shanghai job updates only `history.json`; there are no hourly Actions jobs.
 - Data commits use Shanghai timestamps and list only JSON files whose bytes changed; unchanged runs create no commit.
 - EOD may fill at most 10 trailing missing sessions. Larger gaps require a locally reviewed `just backfill`; multi-request collection uses randomized delays.

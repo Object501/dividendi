@@ -15,12 +15,17 @@ import type { MarketSnapshot } from "./marketSnapshotTypes";
 import { tradingDayPhase } from "./marketTime";
 import { mergeEastmoneyQuotes } from "./mergeEastmoneyQuotes";
 import {
+	claimRefreshAttempt,
+	MINIMUM_MARKET_REFRESH_GAP_MS,
+} from "./refreshThrottle";
+import {
 	fetchTradingCalendar,
 	type TradingCalendar,
 	type TradingDayPhase,
 } from "./tradingCalendar";
 
 export interface MarketSnapshotRefreshDependencies {
+	readonly claimBrowserRefresh: () => boolean;
 	readonly discoverContracts: (
 		signal: AbortSignal,
 	) => Promise<readonly EastmoneyContract[]>;
@@ -41,6 +46,12 @@ export interface MarketSnapshotRefreshDependencies {
 
 const providerDependencies: Omit<MarketSnapshotRefreshDependencies, "persist"> =
 	{
+		claimBrowserRefresh: () =>
+			claimRefreshAttempt(
+				window.localStorage,
+				Date.now(),
+				MINIMUM_MARKET_REFRESH_GAP_MS,
+			),
 		discoverContracts: (signal) =>
 			discoverEastmoneyContracts(instruments, { signal }),
 		fetchCalendar: (signal) => fetchTradingCalendar({ signal }),
@@ -81,6 +92,9 @@ export class MarketSnapshotRefresher {
 				reason: "无法读取历史基准",
 				source: null,
 			});
+			return;
+		}
+		if (signal.aborted || !this.dependencies.claimBrowserRefresh()) {
 			return;
 		}
 

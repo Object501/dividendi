@@ -12,9 +12,9 @@ import type {
 } from "./marketSnapshotState";
 import type { MarketSnapshot } from "./marketSnapshotTypes";
 import { isChineseMarketRefreshWindow, shanghaiDate } from "./marketTime";
+import { MINIMUM_MARKET_REFRESH_GAP_MS } from "./refreshThrottle";
 
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
-const MINIMUM_REFRESH_GAP_MS = 5 * 60 * 1000;
 
 function storedSnapshot(): MarketSnapshot | null {
 	try {
@@ -73,7 +73,7 @@ export function useMarketSnapshot(): MarketSnapshotState {
 			inFlight.current = null;
 			lastAttempt.current = 0;
 		}
-		if (now - lastAttempt.current < MINIMUM_REFRESH_GAP_MS) {
+		if (now - lastAttempt.current < MINIMUM_MARKET_REFRESH_GAP_MS) {
 			return;
 		}
 		lastAttempt.current = now;
