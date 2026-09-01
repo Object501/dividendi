@@ -32,7 +32,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - `main` never tracks generated JSON. Ignored `.data` supports local development through `DIVIDENDI_DATA_DIR` and `.env.development`.
 - Production reads the one-commit orphan `data` branch through `.env.production`; data updates do not rebuild Pages. Preserve last-good data and allow for the raw-file CDN's five-minute cache.
 - Use the pnpm lockfile with Nixpkgs `fetchPnpmDeps`. Python and tools come from pinned Nixpkgs; put missing packages in `nix/overlay.nix`. Do not add uv, pip environments, or node2nix.
-- `scheduler/` is the tracked, cron-only Cloudflare Worker. Its GitHub token exists only as the `GITHUB_TOKEN` Worker secret.
+- `scheduler/` is the tracked, cron-only Cloudflare Worker. Its GitHub token exists only as the `GITHUB_TOKEN` Worker secret; Wrangler is a separate flake package so data jobs keep a minimal shell.
 - GitHub workflows share the repository Magic Nix Cache with GitHub cache enabled and FlakeHub/diagnostics disabled.
 - Dependabot checks pnpm and GitHub Actions weekly; pnpm lock changes require a new `fetchPnpmDeps` hash. It cannot update flake inputs.
 - Native systems: `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`.

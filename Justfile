@@ -21,15 +21,15 @@ build:
 
 # Authenticate Wrangler with the Cloudflare account.
 cloudflare-login:
-    wrangler login
+    nix run .#wrangler -- login
 
 # Deploy the tracked weekday 22:30 Shanghai scheduler.
 cloudflare-deploy:
-    wrangler deploy --config scheduler/wrangler.jsonc
+    nix run .#wrangler -- deploy --config scheduler/wrangler.jsonc
 
 # Prompt for the GitHub token and store it as a Cloudflare Worker secret.
 cloudflare-secret:
-    wrangler secret put GITHUB_TOKEN --config scheduler/wrangler.jsonc
+    nix run .#wrangler -- secret put GITHUB_TOKEN --config scheduler/wrangler.jsonc
 
 # Fetch official closes and incrementally update the rolling 365-day history.
 history:

@@ -40,6 +40,7 @@
           pkgs = pkgsFor system;
           src = ./.;
         };
+        inherit (pkgsFor system) wrangler;
       });
     in
     {

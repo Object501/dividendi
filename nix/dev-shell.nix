@@ -12,7 +12,6 @@
       pkgs.just
       pkgs.nodejs_24
       pkgs.pnpm_11
-      pkgs.wrangler
       pkgs.dividendi-python
     ];
 
