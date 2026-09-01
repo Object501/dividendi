@@ -1,0 +1,12 @@
+{
+	"name": "dividendi-scheduler",
+	"main": "src/index.js",
+	"compatibility_date": "2026-09-01",
+	"workers_dev": false,
+	"triggers": {
+		"crons": ["30 14 * * 1-5"]
+	},
+	"observability": {
+		"enabled": true
+	}
+}

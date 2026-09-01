@@ -43,7 +43,7 @@
 
 - 最新计算结果只持久化在浏览器本机；失败时显示上次成功结果。客户端绝不把盘中数据写回 GitHub，也不会触发 Pages 部署。
 - 浏览器首次打开时请求行情，5 分钟内重新载入则直接使用本机缓存；页面可见、联网且处于中国市场时段时名义上每小时刷新。同一浏览器持久化刷新尝试时间，失败也计入间隔。
-- 每个工作日 19:23（北京时间）只有一个 GitHub Actions 定时任务，增量更新 `history.json`。GitHub 调度和数据源都可能延迟。
+- 每个工作日 22:30（北京时间），Cloudflare Cron Trigger 调用 GitHub Actions，增量更新 `history.json`。GitHub 不再使用原生定时调度；外部触发、runner 和数据源仍可能延迟。
 - `history.json` 从最后交易日增量补齐最近 365 天的日终快照。自动补齐最多 10 个交易日，更大缺口必须手工运行 `just backfill`。
 - 页面明确区分行情日期、行情自身时间与本机缓存；使用数值前请检查数据可能有多旧。
 
@@ -87,6 +87,14 @@ just ci        # 执行完整 Nix 检查
 ```
 
 GitHub 工作流使用仓库级 Magic Nix Cache。Dependabot 每周检查 pnpm 和 GitHub Actions；pnpm 锁文件变化后仍须更新 `nix/package.nix` 中的 `fetchPnpmDeps` 哈希，Nix flake 输入则不由 Dependabot 更新。
+
+Cloudflare Worker 源码和 UTC 工作日 `14:30` 的 Cron Trigger 位于 `scheduler/`，对应北京时间 22:30。部署时先登录并发布，再将只含本仓库 Actions 写权限的 GitHub token 输入交互式 Secret 提示；token 不写入文件或 Git：
+
+```sh
+just cloudflare-login
+just cloudflare-deploy
+just cloudflare-secret
+```
 
 仓库只允许 squash 和 rebase。PR 标题使用 gitlint；Dependabot 标题会删除已有 `(#N)` 并补齐句点，校验时再加上当前 PR 号，确保最终 squash 标题不超过 72 个字符。
 

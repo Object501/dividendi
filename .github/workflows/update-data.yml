@@ -1,11 +1,14 @@
 name: Update market history
-run-name: Update market history (${{ github.event.schedule || 'manual' }})
+run-name: Update market history (${{ inputs.source || 'manual' }})
 
 on:
-  schedule:
-    - cron: "23 19 * * 1-5"
-      timezone: Asia/Shanghai
   workflow_dispatch:
+    inputs:
+      source:
+        description: Trigger source
+        required: false
+        default: manual
+        type: string
 
 permissions: {}
 

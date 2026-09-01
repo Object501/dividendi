@@ -9,7 +9,7 @@
 		"dev": "pnpm generate:data-validator && vite --config frontend/vite.config.ts",
 		"generate:data-validator": "node frontend/scripts/generate-data-validator.mjs",
 		"preview": "vite preview --config frontend/vite.config.ts",
-		"test": "pnpm generate:data-validator && vitest run --config frontend/vite.config.ts",
+		"test": "pnpm generate:data-validator && vitest run --config frontend/vite.config.ts && node --test scheduler/tests/*.test.js",
 		"typecheck": "pnpm generate:data-validator && tsc -b frontend/tsconfig.json",
 		"validate:data-contract": "pnpm generate:data-validator && vitest run --config frontend/vite.config.ts src/publishedData.test.ts"
 	},

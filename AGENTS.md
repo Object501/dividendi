@@ -20,7 +20,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - `schema/public-data-v1.schema.json` is the only public JSON structure. Dev, test, typecheck, contract, and build commands generate untracked validators from it, then run handwritten numeric and semantic checks. For a new schema version, deploy a dual-version reader before changing the collector.
 - Publish only `history.json`; it replaces the same date and retains exactly `(newest - 365 days, newest]` of EOD trading-session closes. Never publish or write back intraday data.
 - The browser loads the newest history snapshot as its basis, downloads Eastmoney quotes, contracts, and published A-share closures, and persists the last valid computed snapshot only in local storage. Poll hourly only while visible, online, and within the China-market window, with a persistent shared five-minute minimum gap that counts failed attempts.
-- One weekday 19:23 Shanghai job updates only `history.json`; there are no hourly Actions jobs.
+- A Cloudflare Cron Trigger dispatches the history workflow at 22:30 Shanghai on weekdays. GitHub has no native schedule; the workflow updates only `history.json`.
 - Data commits use Shanghai timestamps and list only JSON files whose bytes changed; unchanged runs create no commit.
 - EOD may fill at most 10 trailing missing sessions. Larger gaps require a locally reviewed `just backfill`; multi-request collection uses randomized delays.
 
@@ -32,6 +32,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - `main` never tracks generated JSON. Ignored `.data` supports local development through `DIVIDENDI_DATA_DIR` and `.env.development`.
 - Production reads the one-commit orphan `data` branch through `.env.production`; data updates do not rebuild Pages. Preserve last-good data and allow for the raw-file CDN's five-minute cache.
 - Use the pnpm lockfile with Nixpkgs `fetchPnpmDeps`. Python and tools come from pinned Nixpkgs; put missing packages in `nix/overlay.nix`. Do not add uv, pip environments, or node2nix.
+- `scheduler/` is the tracked, cron-only Cloudflare Worker. Its GitHub token exists only as the `GITHUB_TOKEN` Worker secret.
 - GitHub workflows share the repository Magic Nix Cache with GitHub cache enabled and FlakeHub/diagnostics disabled.
 - Dependabot checks pnpm and GitHub Actions weekly; pnpm lock changes require a new `fetchPnpmDeps` hash. It cannot update flake inputs.
 - Native systems: `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`.
@@ -57,7 +58,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - [x] Shared instrument catalog, formulas, sessions, provider adapters, schema validation, generated frontend validators, and bounded incremental collection.
 - [x] Chinese mobile UI, default-dark theme, current tables/charts, and selectable dual-axis history with fiscal-year transition markers.
 - [x] Rolling EOD data in a one-commit `data` branch; idempotent scheduled publication is decoupled from Pages and works locally through `.data`.
-- [x] Browser-side delayed quotes and local persistence; a weekday EOD workflow publishes only rolling history.
+- [x] Browser-side delayed quotes and local persistence; a weekday Cloudflare-triggered EOD workflow publishes only rolling history.
 - [x] Provider parsing, refresh orchestration, history transforms, UI modules, and styles are separated and tested.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
 - [x] GPL-3.0 dependency compatibility and provider terms audited.
