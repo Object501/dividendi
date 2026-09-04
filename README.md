@@ -88,7 +88,7 @@ just ci        # 执行完整 Nix 检查
 
 GitHub 工作流使用仓库级 Magic Nix Cache。Dependabot 每周检查 pnpm 和 GitHub Actions；pnpm 锁文件变化后仍须更新 `nix/package.nix` 中的 `fetchPnpmDeps` 哈希，Nix flake 输入则不由 Dependabot 更新。
 
-Cloudflare Worker 源码和 UTC 工作日 `14:30` 的 Cron Trigger 位于 `scheduler/`，对应北京时间 22:30。Wrangler 作为独立的固定 Nix package 运行，不进入每日数据任务的开发环境。部署时先登录并发布，再将只含本仓库 Actions 写权限的 GitHub token 输入交互式 Secret 提示；token 不写入文件或 Git：
+Cloudflare Worker 源码和 `30 14 * * MON-FRI` Cron Trigger 位于 `scheduler/`，对应北京时间工作日 22:30。这里用星期英文缩写避免 Cloudflare 数字星期以周日为 1 所产生的歧义。Wrangler 作为独立的固定 Nix package 运行，不进入每日数据任务的开发环境。部署时先登录并发布，再将只含本仓库 Actions 写权限的 GitHub token 输入交互式 Secret 提示；token 不写入文件或 Git：
 
 ```sh
 just cloudflare-login

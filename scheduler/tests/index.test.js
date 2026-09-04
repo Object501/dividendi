@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { createScheduler, dispatchHistoryUpdate } from "../src/index.js";
+
+test("schedules weekdays without numeric day-of-week ambiguity", () => {
+	const config = JSON.parse(
+		readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
+	);
+
+	assert.deepEqual(config.triggers.crons, ["30 14 * * MON-FRI"]);
+});
 
 test("dispatches the history workflow with the Cloudflare source", async () => {
 	let capturedUrl;
