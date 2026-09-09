@@ -61,6 +61,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 - [x] Browser-side delayed quotes and local persistence; a weekday Cloudflare-triggered EOD workflow publishes only rolling history.
 - [x] Provider parsing, refresh orchestration, history transforms, UI modules, and styles are separated and tested.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
+- [x] CNInfo history requests retry transient network failures with bounded randomized backoff and fresh request tokens.
 - [x] GPL-3.0 dependency compatibility and provider terms audited.
 - [ ] Publish dependency notices and resolve public market-data permissions before launch.
 
