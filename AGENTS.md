@@ -54,13 +54,14 @@ UI and public README text must be Simplified Chinese. This is personal research,
 
 ## Status
 
-- [x] Pinned Nix/pnpm toolchain, checks, tests, and static Pages build.
+- [x] Pinned Nix/pnpm toolchain, Vitest 5, checks, tests, and static Pages build.
 - [x] Shared instrument catalog, formulas, sessions, provider adapters, schema validation, generated frontend validators, and bounded incremental collection.
 - [x] Chinese mobile UI, default-dark theme, current tables/charts, and selectable dual-axis history with fiscal-year transition markers.
 - [x] Rolling EOD data in a one-commit `data` branch; idempotent scheduled publication is decoupled from Pages and works locally through `.data`.
 - [x] Browser-side delayed quotes and local persistence; a weekday Cloudflare-triggered EOD workflow publishes only rolling history.
 - [x] Provider parsing, refresh orchestration, history transforms, UI modules, and styles are separated and tested.
 - [x] Magic Nix Cache, grouped Dependabot updates, read-only PR checks, squash/rebase policy, and final squash-title validation.
+- [x] CNInfo history requests retry transient network failures with bounded randomized backoff and fresh request tokens.
 - [x] GPL-3.0 dependency compatibility and provider terms audited.
 - [ ] Publish dependency notices and resolve public market-data permissions before launch.
 

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from base64 import b64encode
 from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from http.client import IncompleteRead
 from time import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -23,6 +26,9 @@ CNINFO_DIVIDEND_URL = "https://webapi.cninfo.com.cn/api/sysapi/p_sysapi1139"
 CNINFO_SOURCE = "cninfo"
 _ENCRYPTION_KEY = b"1234567887654321"
 _REPORT_YEAR = re.compile(r"^(?P<year>\d{4})(?:年报|半年报|一季报|三季报)$")
+_FETCH_ATTEMPTS = 4
+_RETRYABLE_HTTP_STATUSES = {408, 429, 500, 502, 503, 504}
+_LOGGER = logging.getLogger(__name__)
 
 
 def create_accept_enckey(timestamp: int | None = None) -> str:
@@ -102,9 +108,7 @@ def parse_dividend_payload(payload: object, code: str) -> tuple[CashDividend, ..
     return tuple(sorted(dividends, key=lambda dividend: dividend.implementation_date))
 
 
-def fetch_dividend_payload(code: str, timeout: float = 15) -> object:
-    """Fetch one stock's dividend records from the public CNInfo web API."""
-
+def _fetch_dividend_payload(code: str, timeout: float) -> object:
     url = f"{CNINFO_DIVIDEND_URL}?{urlencode({'scode': code})}"
     request = Request(
         url,
@@ -121,6 +125,29 @@ def fetch_dividend_payload(code: str, timeout: float = 15) -> object:
     )
     with urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def fetch_dividend_payload(code: str, timeout: float = 15) -> object:
+    """Fetch one stock's records with bounded retries for transient failures."""
+
+    for attempt in range(1, _FETCH_ATTEMPTS + 1):
+        try:
+            # Recreate the timestamp-based token and response on every attempt.
+            return _fetch_dividend_payload(code, timeout)
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead) as error:
+            if isinstance(error, HTTPError):
+                error.close()
+                if error.code not in _RETRYABLE_HTTP_STATUSES:
+                    raise
+            if attempt == _FETCH_ATTEMPTS:
+                raise
+            _LOGGER.warning(
+                "巨潮 %s 请求失败 (%s/%s), 稍后重试: %s", code, attempt, _FETCH_ATTEMPTS, error
+            )
+            delay = 2**attempt
+            polite_delay(delay, delay * 2)
+
+    raise AssertionError("巨潮请求重试流程未返回结果")
 
 
 def fetch_stock_dividends(stock: MarketInstrument) -> tuple[CashDividend, ...]:

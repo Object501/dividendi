@@ -7,6 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.error import URLError
 
 from collector.dividendi_data import CashDividend, load_instruments
 from collector.dividendi_data.archive import (
@@ -215,6 +216,42 @@ class HistoricalBackfillTest(unittest.TestCase):
                 tuple(snapshot.market_date for snapshot in history.snapshots),
                 sessions,
             )
+
+    def test_preserves_history_when_dividend_retries_are_exhausted(self) -> None:
+        with TemporaryDirectory() as directory:
+            history_path = Path(directory) / "history.json"
+            initial = assemble_backfilled_history(
+                self.catalog,
+                self.sessions[0],
+                self.sessions[0],
+                self.futures,
+                self.spots,
+                self.dividends,
+            )
+            publish_history_document(initial, self.catalog, history_path)
+            original_bytes = history_path.read_bytes()
+
+            with (
+                patch(
+                    "collector.dividendi_data.backfill.fetch_cffex_closes",
+                    return_value=self.futures,
+                ),
+                patch(
+                    "collector.dividendi_data.backfill.fetch_baostock_closes",
+                    return_value=self.spots,
+                ),
+                patch(
+                    "collector.dividendi_data.cninfo.urlopen",
+                    side_effect=URLError("DNS unavailable"),
+                ) as fetch_dividends,
+                patch("collector.dividendi_data.cninfo.polite_delay"),
+                self.assertLogs("collector.dividendi_data.cninfo", level="WARNING"),
+                self.assertRaises(URLError),
+            ):
+                refresh_history(history_path, as_of=datetime(2026, 8, 28, 19, tzinfo=SHANGHAI))
+
+            self.assertEqual(fetch_dividends.call_count, 4)
+            self.assertEqual(history_path.read_bytes(), original_bytes)
 
     def test_rejects_incremental_gap_above_limit(self) -> None:
         with TemporaryDirectory() as directory:
