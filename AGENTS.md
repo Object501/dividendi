@@ -54,7 +54,7 @@ UI and public README text must be Simplified Chinese. This is personal research,
 
 ## Status
 
-- [x] Pinned Nix/pnpm toolchain, checks, tests, and static Pages build.
+- [x] Pinned Nix/pnpm toolchain, Vitest 5, checks, tests, and static Pages build.
 - [x] Shared instrument catalog, formulas, sessions, provider adapters, schema validation, generated frontend validators, and bounded incremental collection.
 - [x] Chinese mobile UI, default-dark theme, current tables/charts, and selectable dual-axis history with fiscal-year transition markers.
 - [x] Rolling EOD data in a one-commit `data` branch; idempotent scheduled publication is decoupled from Pages and works locally through `.data`.
